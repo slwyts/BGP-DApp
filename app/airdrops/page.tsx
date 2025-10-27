@@ -12,7 +12,7 @@ import { DailyRewardAnimation } from "@/components/daily-reward-animation";
 import { NavMenu } from "@/components/nav-menu";
 import { EnhancedRewardCard } from "@/components/enhanced-reward-card";
 import { StatsGrid } from "@/components/stats-grid";
-import { ActivityFeed } from "@/components/activity-feed";
+import { airdropManager } from "@/lib/airdrop";
 import { useEffect, useState, useRef, useMemo } from "react";
 
 export default function HomePage() {
@@ -107,8 +107,7 @@ export default function HomePage() {
   const fetchStatus = async () => {
     try {
       const addr = getAddr();
-      const res = await fetch(`/api/airdrop/status${addr ? `?addr=${addr}` : ""}`, { cache: "no-store" });
-      const data = await res.json();
+      const data = airdropManager.getStatus(addr);
       setTodayCount(data.claimsToday || 0);
       setServerNext(data.next || null);
       const now = Date.now();
@@ -149,9 +148,8 @@ export default function HomePage() {
     setStatus("pending");
     try {
       const addr = getAddr();
-      const res = await fetch(`/api/airdrop/claim${addr ? `?addr=${addr}` : ""}`, { method: "POST" });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
+      const data = airdropManager.claim(addr);
+      if (!data.success) {
         await fetchStatus();
         setStatus("cooldown");
         return;
@@ -424,7 +422,7 @@ export default function HomePage() {
                 buttonText={t("claim")}
                 icon={Gift}
                 delay={0}
-                onClaim={() => onClaim({ bgp: 200 })}
+                showButton={false}
               />
               <EnhancedRewardCard
                 title="USDT"
@@ -432,10 +430,8 @@ export default function HomePage() {
                 buttonText={t("claim")}
                 icon={TrendingUp}
                 delay={0.1}
-                onClaim={() => onClaim({ usdt: 0.5 })}
+                showButton={false}
               />
-
-              {/* Estimated today block removed */}
             </div>
 
             <StatsGrid />
