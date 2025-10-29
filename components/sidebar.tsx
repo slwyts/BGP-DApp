@@ -59,7 +59,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           />
 
           <motion.aside
-            className="fixed inset-0 z-100 h-full w-full bg-background shadow-2xl p-6 flex flex-col gap-6 pointer-events-auto overflow-y-auto"
+            className="fixed inset-y-0 left-0 z-100 h-screen w-3/5 bg-background shadow-2xl p-6 flex flex-col gap-6 pointer-events-auto overflow-y-auto"
             initial={{ x: "-100%" }}
             animate={{ x: 0 }}
             exit={{ x: "-100%" }}
@@ -100,7 +100,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.1 }}
               >
-                <span className="text-xl font-bold bg-linear-to-r from-primary to-orange-500 bg-clip-text text-transparent">
+                <span className="text-lg font-bold bg-linear-to-r from-primary to-orange-500 bg-clip-text text-transparent">
                   {t("appName")}
                 </span>
               </motion.div>
@@ -127,7 +127,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                     <Link href={item.href} onClick={onClose}>
                       <motion.div
                         className={cn(
-                          "relative flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-300 group overflow-hidden",
+                          "relative flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group overflow-hidden",
                           isActive
                             ? "bg-linear-to-r from-primary to-orange-500 text-white shadow-lg shadow-primary/30"
                             : "bg-card/50 hover:bg-card/80 text-foreground border border-border/50 hover:border-primary/50",
@@ -146,15 +146,15 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
                         <div
                           className={cn(
-                            "w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-300",
+                            "w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-300",
                             isActive
                               ? "bg-white/20"
                               : "bg-linear-to-br from-primary/20 to-orange-500/20 group-hover:from-primary/30 group-hover:to-orange-500/30",
                           )}
                         >
-                          <item.icon className="w-5 h-5" />
+                          <item.icon className="w-4 h-4" />
                         </div>
-                        <span className="text-base font-semibold relative z-10">
+                        <span className="text-sm font-semibold relative z-10">
                           {item.label}
                         </span>
 

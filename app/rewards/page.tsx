@@ -36,6 +36,7 @@ export default function RewardsPage() {
   const totalContribution = 12650;
   const [claimed, setClaimed] = useState<number[]>([1, 2]);
   const withdrawableUSDT = 7.5;
+  const withdrawableBGP = 50000;
   // Removed unused withdraw input state
   const [overlay, setOverlay] = useState<{
     open: boolean;
@@ -191,14 +192,25 @@ export default function RewardsPage() {
           </motion.div>
 
           <div className="grid grid-cols-2 gap-3 mb-6">
-            <div className="relative bg-card/30 backdrop-blur-md rounded-2xl p-4 border border-primary/20 text-center overflow-hidden">
+            <div className="relative bg-card/30 backdrop-blur-md rounded-2xl p-4 border border-primary/20 overflow-hidden">
               <div className="absolute top-0 left-0 w-4 h-4 border-t border-l border-primary/40" />
               <div className="absolute top-0 right-0 w-4 h-4 border-t border-r border-primary/40" />
-              <div className="text-2xl font-bold text-primary relative z-10">
-                {totalContribution.toLocaleString()}
-              </div>
-              <div className="text-xs text-muted-foreground relative z-10">
-                {t("myContribution")}
+              <div className="relative z-10 space-y-2">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-primary">
+                    {withdrawableBGP.toLocaleString()} BGP
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {t("bgpWithdrawable")}
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  className="w-full bg-linear-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90"
+                >
+                  <ArrowDownToLine className="w-4 h-4 mr-1" />
+                  {t("withdrawButton")}
+                </Button>
               </div>
             </div>
             <div className="relative bg-card/30 backdrop-blur-md rounded-2xl p-4 border border-primary/20 overflow-hidden">

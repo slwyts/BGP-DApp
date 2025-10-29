@@ -99,7 +99,7 @@ export function StatsGrid() {
           <Globe className="w-6 h-6 text-primary" />
           {t("globalData")}
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           {globalStats.map((stat, index) => (
             <motion.div
               key={stat.label}
@@ -130,23 +130,21 @@ export function StatsGrid() {
                   }}
                 />
 
-                <div className="relative z-10 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                <div className="relative z-10 flex flex-col items-start gap-2 text-left">
+                  <div className="flex items-center gap-3 min-w-0">
                     <motion.div
-                      className={`w-10 h-10 rounded-xl bg-linear-to-br ${stat.gradient} flex items-center justify-center shadow-lg shrink-0`}
+                      className={`w-9 h-9 rounded-xl bg-linear-to-br ${stat.gradient} flex items-center justify-center shadow-lg shrink-0`}
                       whileHover={{ scale: 1.1, rotate: 5 }}
                       transition={{ duration: 0.3 }}
                     >
-                      <stat.icon className="w-5 h-5 text-white" />
+                      <stat.icon className="w-4 h-4 text-white" />
                     </motion.div>
-
                     <div className="text-xs text-muted-foreground font-medium leading-tight min-w-0">
                       {stat.label}
                     </div>
                   </div>
-
-                  <div className="text-right shrink-0">
-                    <div className="text-xl sm:text-2xl font-bold text-foreground whitespace-nowrap">
+                  <div>
+                    <div className="text-2xl font-bold text-foreground">
                       {stat.value}
                     </div>
                     {stat.unit && (
@@ -168,7 +166,7 @@ export function StatsGrid() {
           <User className="w-6 h-6 text-primary" />
           {t("personalData")}
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           {personalStats.map((stat, index) => (
             <motion.div
               key={stat.label}
@@ -199,23 +197,21 @@ export function StatsGrid() {
                   }}
                 />
 
-                <div className="relative z-10 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                <div className="relative z-10 flex flex-col items-start gap-2 text-left">
+                  <div className="flex items-center gap-3 min-w-0">
                     <motion.div
-                      className={`w-10 h-10 rounded-xl bg-linear-to-br ${stat.gradient} flex items-center justify-center shadow-lg shrink-0`}
+                      className={`w-9 h-9 rounded-xl bg-linear-to-br ${stat.gradient} flex items-center justify-center shadow-lg shrink-0`}
                       whileHover={{ scale: 1.1, rotate: 5 }}
                       transition={{ duration: 0.3 }}
                     >
-                      <stat.icon className="w-5 h-5 text-white" />
+                      <stat.icon className="w-4 h-4 text-white" />
                     </motion.div>
-
                     <div className="text-xs text-muted-foreground font-medium leading-tight min-w-0">
                       {stat.label}
                     </div>
                   </div>
-
-                  <div className="text-right shrink-0">
-                    <div className="text-xl sm:text-2xl font-bold text-foreground whitespace-nowrap">
+                  <div>
+                    <div className="text-2xl font-bold text-foreground">
                       {stat.value}
                     </div>
                     {stat.unit && (

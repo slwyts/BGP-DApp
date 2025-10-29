@@ -343,8 +343,9 @@ export function GlobeAirdrop() {
                 stroke="#ff8c00"
                 strokeOpacity={LOCUS_CONFIG.backOpacity}
                 strokeWidth={LOCUS_CONFIG.strokeWidth}
-                strokeLinecap="square"
+                strokeLinecap="round"
                 strokeLinejoin="round"
+                strokeDasharray="5 5"
                 vectorEffect="non-scaling-stroke"
               />
             ));
@@ -424,8 +425,9 @@ export function GlobeAirdrop() {
                 stroke="#ff8c00"
                 strokeOpacity={LOCUS_CONFIG.frontOpacity}
                 strokeWidth={LOCUS_CONFIG.strokeWidth + 0.05}
-                strokeLinecap="square"
+                strokeLinecap="round"
                 strokeLinejoin="round"
+                strokeDasharray="5 5"
                 vectorEffect="non-scaling-stroke"
               />
             ));
@@ -501,15 +503,15 @@ export function GlobeAirdrop() {
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-2">
-        <div className="bg-card rounded-xl p-3 border border-border text-center backdrop-blur-sm">
-          <div className="text-2xl font-bold text-primary">
+        <div className="bg-card rounded-xl p-3 border border-border text-left backdrop-blur-sm">
+          <div className="text-xs text-muted-foreground">{t("airdrops")}</div>
+          <div className="text-2xl font-bold text-primary mt-1">
             {droppedMarkers.length}
           </div>
-          <div className="text-xs text-muted-foreground">{t("airdrops")}</div>
         </div>
-        <div className="bg-card rounded-xl p-3 border border-border text-center backdrop-blur-sm">
-          <div className="text-2xl font-bold text-primary">1,250</div>
+        <div className="bg-card rounded-xl p-3 border border-border text-left backdrop-blur-sm">
           <div className="text-xs text-muted-foreground">BGP</div>
+          <div className="text-2xl font-bold text-primary mt-1">1,250</div>
         </div>
       </div>
     </div>
