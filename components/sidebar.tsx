@@ -176,6 +176,17 @@ export function Sidebar({ open, onClose }: SidebarProps) {
               })}
             </nav>
 
+            <div className="bg-card/30 backdrop-blur-md rounded-2xl p-4 border border-primary/20 mb-6 mt-6">
+              <div className="grid gap-2">
+                <Link href="#" target="_blank" className="underline text-sm">
+                  {t("officialSite")}
+                </Link>
+                <Link href="#" className="underline text-sm">
+                  {t("blockExplorer")}
+                </Link>
+              </div>
+            </div>
+
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}

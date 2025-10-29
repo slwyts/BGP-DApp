@@ -87,7 +87,10 @@ export function ClaimAnimationOverlay({
             }}
           />
 
-          <div className="relative z-10" onClick={() => closable && onClose?.()}>
+          <div
+            className="relative z-10"
+            onClick={() => closable && onClose?.()}
+          >
             {[0, 1, 2, 3].map((i) => (
               <motion.div
                 key={`ring-${i}`}
@@ -171,7 +174,9 @@ export function ClaimAnimationOverlay({
                     </div>
                   )}
                   {closable && (
-                    <div className="text-sm text-white/70">Tap anywhere to close</div>
+                    <div className="text-sm text-white/70">
+                      Tap anywhere to close
+                    </div>
                   )}
                 </motion.div>
               </motion.div>

@@ -89,43 +89,40 @@ export function GlobeAirdrop() {
   );
 
   // Compute locus (equatorial) ring points for a given rotation and tilt
-  const computeLocusPoints = useCallback(
-    (phi: number, theta: number) => {
-      const cx = 50;
-      const cy = 50;
-      const r = LOCUS_CONFIG.radius;
-      const segments = LOCUS_CONFIG.segments;
+  const computeLocusPoints = useCallback((phi: number, theta: number) => {
+    const cx = 50;
+    const cy = 50;
+    const r = LOCUS_CONFIG.radius;
+    const segments = LOCUS_CONFIG.segments;
 
-      const points: { x: number; y: number; z: number }[] = [];
+    const points: { x: number; y: number; z: number }[] = [];
 
-      // Base equatorial circle in XZ-plane: (cos t, 0, sin t)
-      for (let i = 0; i < segments; i++) {
-        const t = (i / segments) * Math.PI * 2;
-        const ux = Math.cos(t);
-        const uy = 0;
-        const uz = Math.sin(t);
+    // Base equatorial circle in XZ-plane: (cos t, 0, sin t)
+    for (let i = 0; i < segments; i++) {
+      const t = (i / segments) * Math.PI * 2;
+      const ux = Math.cos(t);
+      const uy = 0;
+      const uz = Math.sin(t);
 
-        // Rotate around X by theta (tilt)
-        const ux1 = ux;
-        const uy1 = uy * Math.cos(theta) - uz * Math.sin(theta);
-        const uz1 = uy * Math.sin(theta) + uz * Math.cos(theta);
+      // Rotate around X by theta (tilt)
+      const ux1 = ux;
+      const uy1 = uy * Math.cos(theta) - uz * Math.sin(theta);
+      const uz1 = uy * Math.sin(theta) + uz * Math.cos(theta);
 
-        // Rotate around Y by phi (spin)
-        const ux2 = ux1 * Math.cos(phi) + uz1 * Math.sin(phi);
-        const uy2 = uy1;
-        const uz2 = -ux1 * Math.sin(phi) + uz1 * Math.cos(phi);
+      // Rotate around Y by phi (spin)
+      const ux2 = ux1 * Math.cos(phi) + uz1 * Math.sin(phi);
+      const uy2 = uy1;
+      const uz2 = -ux1 * Math.sin(phi) + uz1 * Math.cos(phi);
 
-        // Project to 2D (orthographic)
-        const sx = cx + r * ux2;
-        const sy = cy - r * uy2; // SVG y-axis inverted
+      // Project to 2D (orthographic)
+      const sx = cx + r * ux2;
+      const sy = cy - r * uy2; // SVG y-axis inverted
 
-        points.push({ x: sx, y: sy, z: uz2 });
-      }
+      points.push({ x: sx, y: sy, z: uz2 });
+    }
 
-      return points;
-    },
-    [],
-  );
+    return points;
+  }, []);
 
   const [airdropKey, setAirdropKey] = useState(0);
   const [showGift, setShowGift] = useState(false);
@@ -141,16 +138,19 @@ export function GlobeAirdrop() {
   const dropPhiRef = useRef<number>(0);
   const globeTiltRef = useRef<number>(0.3);
 
-  const handleRotationUpdate = useCallback((phi: number) => {
-    globeRotationRef.current = phi;
-    setRingPhi(phi);
-    // Update plane angle smoothly to the analytic front-most point
-    const tFront = frontAngle(phi, globeTiltRef.current);
-    planeTRef.current = unwrapAngle(tFront, planeTRef.current);
-    const p = projectRingPoint(planeTRef.current, phi, globeTiltRef.current);
-    planeX.set(p.x);
-    planeY.set(p.y);
-  }, [projectRingPoint, planeX, planeY]);
+  const handleRotationUpdate = useCallback(
+    (phi: number) => {
+      globeRotationRef.current = phi;
+      setRingPhi(phi);
+      // Update plane angle smoothly to the analytic front-most point
+      const tFront = frontAngle(phi, globeTiltRef.current);
+      planeTRef.current = unwrapAngle(tFront, planeTRef.current);
+      const p = projectRingPoint(planeTRef.current, phi, globeTiltRef.current);
+      planeX.set(p.x);
+      planeY.set(p.y);
+    },
+    [projectRingPoint, planeX, planeY],
+  );
 
   const globeConfig = useMemo(() => {
     const isDark = theme === "dark";
@@ -276,18 +276,21 @@ export function GlobeAirdrop() {
           viewBox="0 0 100 100"
           preserveAspectRatio="xMidYMid meet"
           shapeRendering="geometricPrecision"
-          style={{ overflow: 'visible' }}
+          style={{ overflow: "visible" }}
         >
           {(() => {
             // Compute seamless front/back polylines with seam interpolation
             const pts = locusPoints;
             const n = pts.length;
-            const backSegments: { points: { x: number; y: number; z: number }[] }[] = [];
+            const backSegments: {
+              points: { x: number; y: number; z: number }[];
+            }[] = [];
             let currentBack: { x: number; y: number; z: number }[] = [];
             let inBack = false;
 
             const pushBack = () => {
-              if (currentBack.length > 1) backSegments.push({ points: currentBack });
+              if (currentBack.length > 1)
+                backSegments.push({ points: currentBack });
               currentBack = [];
             };
 
@@ -335,7 +338,7 @@ export function GlobeAirdrop() {
             return backSegments.map((segment, idx) => (
               <polyline
                 key={`locus-back-${idx}`}
-                points={segment.points.map((p) => `${p.x},${p.y}`).join(' ')}
+                points={segment.points.map((p) => `${p.x},${p.y}`).join(" ")}
                 fill="none"
                 stroke="#ff8c00"
                 strokeOpacity={LOCUS_CONFIG.backOpacity}
@@ -361,18 +364,21 @@ export function GlobeAirdrop() {
           viewBox="0 0 100 100"
           preserveAspectRatio="xMidYMid meet"
           shapeRendering="geometricPrecision"
-          style={{ overflow: 'visible' }}
+          style={{ overflow: "visible" }}
         >
           {(() => {
             // Compute seamless front polylines with seam interpolation
             const pts = locusPoints;
             const n = pts.length;
-            const frontSegments: { points: { x: number; y: number; z: number }[] }[] = [];
+            const frontSegments: {
+              points: { x: number; y: number; z: number }[];
+            }[] = [];
             let currentFront: { x: number; y: number; z: number }[] = [];
             let inFront = false;
 
             const pushFront = () => {
-              if (currentFront.length > 1) frontSegments.push({ points: currentFront });
+              if (currentFront.length > 1)
+                frontSegments.push({ points: currentFront });
               currentFront = [];
             };
 
@@ -413,7 +419,7 @@ export function GlobeAirdrop() {
             return frontSegments.map((segment, idx) => (
               <polyline
                 key={`locus-front-${idx}`}
-                points={segment.points.map((p) => `${p.x},${p.y}`).join(' ')}
+                points={segment.points.map((p) => `${p.x},${p.y}`).join(" ")}
                 fill="none"
                 stroke="#ff8c00"
                 strokeOpacity={LOCUS_CONFIG.frontOpacity}
@@ -429,14 +435,33 @@ export function GlobeAirdrop() {
         {/* Plane positioned by springs and bobbing subtly */}
         <motion.div
           className="absolute pointer-events-none z-30"
-          style={{ left: leftMV, top: topMV, transform: "translate(-50%, -50%)" }}
+          style={{
+            left: leftMV,
+            top: topMV,
+            transform: "translate(-50%, -50%)",
+          }}
         >
-          <motion.div animate={{ y: [-2, 2] }} transition={{ duration: 2.2, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}>
+          <motion.div
+            animate={{ y: [-2, 2] }}
+            transition={{
+              duration: 2.2,
+              repeat: Infinity,
+              repeatType: "mirror",
+              ease: "easeInOut",
+            }}
+          >
             <div
               className="w-16 h-16 flex items-center justify-center"
-              style={{ filter: "drop-shadow(0 10px 20px rgba(0,0,0,0.3))", transform: "rotate(290deg)" }}
+              style={{
+                filter: "drop-shadow(0 10px 20px rgba(0,0,0,0.3))",
+                transform: "rotate(290deg)",
+              }}
             >
-              <svg className="w-12 h-12 text-primary" viewBox="0 0 24 24" fill="currentColor">
+              <svg
+                className="w-12 h-12 text-primary"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
                 <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" />
               </svg>
             </div>
@@ -447,11 +472,20 @@ export function GlobeAirdrop() {
           <motion.div
             key={`airdrop-${airdropKey}`}
             className="absolute pointer-events-none z-20"
-            style={{ left: leftMV, top: topMV, transform: `translate(-50%, -50%) scale(${1 - giftDropProgress * 0.5})` }}
+            style={{
+              left: leftMV,
+              top: topMV,
+              transform: `translate(-50%, -50%) scale(${1 - giftDropProgress * 0.5})`,
+            }}
             animate={{ y: giftDropProgress * 14 }}
             transition={{ ease: "linear", duration: 0 }}
           >
-            <Gift className="text-primary drop-shadow-lg" size={28} strokeWidth={3} style={{ opacity: 1 - giftDropProgress * 0.7 }} />
+            <Gift
+              className="text-primary drop-shadow-lg"
+              size={28}
+              strokeWidth={3}
+              style={{ opacity: 1 - giftDropProgress * 0.7 }}
+            />
           </motion.div>
         )}
       </div>

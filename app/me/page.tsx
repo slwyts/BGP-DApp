@@ -5,7 +5,6 @@ import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import { Calendar, Crown, TrendingUp, Activity } from "lucide-react";
 import { useLocale } from "@/components/locale-provider";
-import Link from "next/link";
 import { Particles } from "@/components/ui/particles";
 import { useEffect, useState } from "react";
 import { ActivityFeed } from "@/components/activity-feed";
@@ -153,8 +152,12 @@ export default function MePage() {
                   <Activity className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-blue-500">{totalBGPClaimed}</div>
-                  <div className="text-xs text-muted-foreground">{t("totalBGPClaimed")}</div>
+                  <div className="text-2xl font-bold text-blue-500">
+                    {totalBGPClaimed}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {t("totalBGPClaimed")}
+                  </div>
                 </div>
               </div>
             </div>
@@ -167,8 +170,12 @@ export default function MePage() {
                   <TrendingUp className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-green-500">{totalIncome.toLocaleString()}</div>
-                  <div className="text-xs text-muted-foreground">{t("totalIncome")}</div>
+                  <div className="text-2xl font-bold text-green-500">
+                    {totalIncome.toLocaleString()}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {t("totalIncome")}
+                  </div>
                 </div>
               </div>
             </div>
@@ -178,17 +185,6 @@ export default function MePage() {
           <div className="mt-6">
             {/* <h2 className="text-lg font-semibold mb-3">{t("recentTransactions")}</h2> */}
             <ActivityFeed />
-          </div>
-
-          <div className="bg-card/30 backdrop-blur-md rounded-2xl p-4 border border-primary/20 mb-6 mt-6">
-            <div className="grid gap-2">
-              <Link href="#" target="_blank" className="underline text-sm">
-                {t("officialSite")}
-              </Link>
-              <Link href="#" className="underline text-sm">
-                {t("blockExplorer")}
-              </Link>
-            </div>
           </div>
         </div>
       </div>

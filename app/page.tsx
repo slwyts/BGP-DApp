@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { SiteHeader } from "@/components/site-header";
 import { useLocale } from "@/components/locale-provider";
 import { BackgroundBeamsWithCollision } from "@/components/ui/background-beams-with-collision";
+import { NavMenu } from "@/components/nav-menu";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 
@@ -175,7 +176,7 @@ export default function HomePage() {
               ))}
             </motion.div>
 
-            {/* Removed bottom CTA per spec */}
+            <NavMenu />
           </div>
         </div>
       </div>

@@ -43,7 +43,8 @@ export async function POST(req: NextRequest) {
   if (now >= noon) slot = "12:00";
   else if (now >= midnight) slot = "00:00";
 
-  const already = slot === "00:00" ? slots.s00 : slot === "12:00" ? slots.s12 : true;
+  const already =
+    slot === "00:00" ? slots.s00 : slot === "12:00" ? slots.s12 : true;
   if (!slot || already) {
     return NextResponse.json(
       { success: false, reason: "not-claimable" },

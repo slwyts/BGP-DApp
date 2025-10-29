@@ -22,8 +22,8 @@ export function DailyRewardAnimation({
       setIsMobile(window.innerWidth < 768);
     };
     checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
   const [particles] = useState(() =>
@@ -32,7 +32,7 @@ export function DailyRewardAnimation({
       x: Math.random() * 100 - 50,
       y: Math.random() * 100 - 50,
       delay: Math.random() * 0.5,
-    }))
+    })),
   );
 
   return (
@@ -44,7 +44,7 @@ export function DailyRewardAnimation({
           exit={{ opacity: 0 }}
           transition={{ duration: 0.3 }}
           className="fixed inset-0 z-100 pointer-events-none flex items-center justify-center"
-          style={{ isolation: 'isolate' }}
+          style={{ isolation: "isolate" }}
         >
           {/* Background overlay - clickable */}
           <motion.div
@@ -72,8 +72,9 @@ export function DailyRewardAnimation({
                 transition={{ duration: 0.8, ease: "easeOut" }}
                 className="absolute inset-0"
                 style={{
-                  background: "radial-gradient(circle, rgba(255,140,50,0.3), rgba(255,100,30,0.2), transparent)",
-                  willChange: "transform, opacity"
+                  background:
+                    "radial-gradient(circle, rgba(255,140,50,0.3), rgba(255,100,30,0.2), transparent)",
+                  willChange: "transform, opacity",
                 }}
               />
 
@@ -139,58 +140,70 @@ export function DailyRewardAnimation({
             style={{ willChange: "transform, opacity" }}
           >
             <motion.div
-              animate={isMobile ? {} : {
-                scale: [1, 1.1, 1],
-              }}
-              transition={isMobile ? {} : {
-                duration: 2,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
+              animate={
+                isMobile
+                  ? {}
+                  : {
+                      scale: [1, 1.1, 1],
+                    }
+              }
+              transition={
+                isMobile
+                  ? {}
+                  : {
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }
+              }
               className="relative mx-auto w-48 h-48 mb-8"
             >
-              <div className="absolute inset-0 bg-linear-to-br from-primary via-orange-500 to-orange-600 rounded-full blur-3xl opacity-60" style={{ willChange: "auto" }} />
+              <div
+                className="absolute inset-0 bg-linear-to-br from-primary via-orange-500 to-orange-600 rounded-full blur-3xl opacity-60"
+                style={{ willChange: "auto" }}
+              />
               <div className="absolute inset-4 bg-linear-to-br from-primary via-orange-500 to-orange-600 rounded-full flex items-center justify-center shadow-2xl">
                 <Gift className="w-24 h-24 text-white" />
               </div>
 
-              {!isMobile && [0, 120, 240].map((angle, i) => (
-                <motion.div
-                  key={i}
-                  animate={{
-                    rotate: [angle, angle + 180],
-                  }}
-                  transition={{
-                    duration: 8,
-                    repeat: Infinity,
-                    ease: "linear",
-                  }}
-                  className="absolute inset-0"
-                  style={{ willChange: "transform" }}
-                >
+              {!isMobile &&
+                [0, 120, 240].map((angle, i) => (
                   <motion.div
-                    className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2"
+                    key={i}
                     animate={{
-                      scale: [1, 1.2, 1],
+                      rotate: [angle, angle + 180],
                     }}
                     transition={{
-                      duration: 2,
+                      duration: 8,
                       repeat: Infinity,
-                      ease: "easeInOut",
-                      delay: i * 0.3,
+                      ease: "linear",
                     }}
+                    className="absolute inset-0"
                     style={{ willChange: "transform" }}
                   >
-                    {i === 0 && (
-                      <Star className="w-8 h-8 text-yellow-400 fill-yellow-400" />
-                    )}
-                    {i === 1 && <Coins className="w-8 h-8 text-orange-400" />}
-                    {i === 2 && (
-                      <Zap className="w-8 h-8 text-primary fill-primary" />
-                    )}
+                    <motion.div
+                      className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2"
+                      animate={{
+                        scale: [1, 1.2, 1],
+                      }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                        delay: i * 0.3,
+                      }}
+                      style={{ willChange: "transform" }}
+                    >
+                      {i === 0 && (
+                        <Star className="w-8 h-8 text-yellow-400 fill-yellow-400" />
+                      )}
+                      {i === 1 && <Coins className="w-8 h-8 text-orange-400" />}
+                      {i === 2 && (
+                        <Zap className="w-8 h-8 text-primary fill-primary" />
+                      )}
+                    </motion.div>
                   </motion.div>
-                </motion.div>
-              ))}
+                ))}
             </motion.div>
 
             {/* Text content */}
@@ -200,14 +213,22 @@ export function DailyRewardAnimation({
               transition={{ delay: 0.5, duration: 0.6 }}
             >
               <motion.h2
-                animate={isMobile ? {} : {
-                  scale: [1, 1.05, 1],
-                }}
-                transition={isMobile ? {} : {
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
+                animate={
+                  isMobile
+                    ? {}
+                    : {
+                        scale: [1, 1.05, 1],
+                      }
+                }
+                transition={
+                  isMobile
+                    ? {}
+                    : {
+                        duration: 2,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                      }
+                }
                 className="text-6xl font-bold mb-4 bg-linear-to-r from-primary via-orange-500 to-orange-600 bg-clip-text text-transparent"
               >
                 {t("dailyReward")}
@@ -216,14 +237,22 @@ export function DailyRewardAnimation({
                 {t("interactionSuccessful")}
               </p>
               <motion.p
-                animate={isMobile ? {} : {
-                  opacity: [0.6, 1, 0.6],
-                }}
-                transition={isMobile ? {} : {
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
+                animate={
+                  isMobile
+                    ? {}
+                    : {
+                        opacity: [0.6, 1, 0.6],
+                      }
+                }
+                transition={
+                  isMobile
+                    ? {}
+                    : {
+                        duration: 2,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                      }
+                }
                 className="text-4xl font-bold text-primary"
               >
                 +100 BGP
@@ -231,24 +260,25 @@ export function DailyRewardAnimation({
             </motion.div>
 
             {/* Pulse waves - desktop only */}
-            {!isMobile && [0, 1, 2].map((i) => (
-              <motion.div
-                key={i}
-                initial={{ scale: 0, opacity: 0.8 }}
-                animate={{
-                  scale: [0, 3],
-                  opacity: [0.8, 0],
-                }}
-                transition={{
-                  duration: 2,
-                  delay: i * 0.4,
-                  repeat: Infinity,
-                  ease: "easeOut",
-                }}
-                className="absolute inset-0 border-4 border-primary rounded-full"
-                style={{ willChange: "transform, opacity" }}
-              />
-            ))}
+            {!isMobile &&
+              [0, 1, 2].map((i) => (
+                <motion.div
+                  key={i}
+                  initial={{ scale: 0, opacity: 0.8 }}
+                  animate={{
+                    scale: [0, 3],
+                    opacity: [0.8, 0],
+                  }}
+                  transition={{
+                    duration: 2,
+                    delay: i * 0.4,
+                    repeat: Infinity,
+                    ease: "easeOut",
+                  }}
+                  className="absolute inset-0 border-4 border-primary rounded-full"
+                  style={{ willChange: "transform, opacity" }}
+                />
+              ))}
           </motion.div>
 
           {/* Corner sparkles - desktop only */}

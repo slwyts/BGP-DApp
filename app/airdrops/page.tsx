@@ -1,174 +1,194 @@
-"use client"
+"use client";
 
-import { motion, useScroll, useTransform } from "motion/react"
-import { Timer, Sparkles, Zap, Rocket, PlusCircle } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { GlobeAirdrop } from "@/components/globe-airdrop"
-import { WarpBackground } from "@/components/ui/warp-background"
-import { SiteHeader } from "@/components/site-header"
-import { useLocale } from "@/components/locale-provider"
-import { ClaimAnimationOverlay } from "@/components/claim-animation-overlay"
-import { DailyRewardAnimation } from "@/components/daily-reward-animation"
-import { NavMenu } from "@/components/nav-menu"
-import { StatsGrid } from "@/components/stats-grid"
-import { useEffect, useState, useRef, useMemo, useCallback } from "react"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { motion, useScroll, useTransform } from "motion/react";
+import { Timer, Sparkles, Zap, Rocket, PlusCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { GlobeAirdrop } from "@/components/globe-airdrop";
+import { WarpBackground } from "@/components/ui/warp-background";
+import { SiteHeader } from "@/components/site-header";
+import { useLocale } from "@/components/locale-provider";
+import { ClaimAnimationOverlay } from "@/components/claim-animation-overlay";
+import { DailyRewardAnimation } from "@/components/daily-reward-animation"; // import { NavMenu } from "@/components/nav-menu"
+import { StatsGrid } from "@/components/stats-grid";
+import { useEffect, useState, useRef, useMemo, useCallback } from "react";
+// Dialog removed for this simple inline modal
 
 export default function HomePage() {
-  const { t } = useLocale()
-  const [mounted, setMounted] = useState(false)
-  const [status, setStatus] = useState<"ready" | "pending" | "cooldown">("ready")
-  const [cooldown, setCooldown] = useState(0)
-  const [todayCount, setTodayCount] = useState(0)
+  const { t } = useLocale();
+  const [mounted, setMounted] = useState(false);
+  const [status, setStatus] = useState<"ready" | "pending" | "cooldown">(
+    "ready",
+  );
+  const [cooldown, setCooldown] = useState(0);
+  const [todayCount, setTodayCount] = useState(0);
   // Removed unused claim animation state
-  const [claimOverlay, setClaimOverlay] = useState<{ open: boolean; usdt?: number; bgp?: number }>({ open: false })
-  const [showDailyRewardAnim, setShowDailyRewardAnim] = useState(false)
-  const containerRef = useRef<HTMLDivElement>(null)
-  const [hydrated, setHydrated] = useState(false)
-  const [showBLADialog, setShowBLADialog] = useState(false)
+  const [claimOverlay, setClaimOverlay] = useState<{
+    open: boolean;
+    usdt?: number;
+    bgp?: number;
+  }>({ open: false });
+  const [showDailyRewardAnim, setShowDailyRewardAnim] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [hydrated, setHydrated] = useState(false);
+  // In-site popup for "Add BGP to Wallet"
+  const [showAddBGPDialog, setShowAddBGPDialog] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => setHydrated(true), 0)
-    return () => clearTimeout(timer)
-  }, [])
+    const timer = setTimeout(() => setHydrated(true), 0);
+    return () => clearTimeout(timer);
+  }, []);
 
   const { scrollYProgress } = useScroll({
     container: hydrated ? containerRef : undefined,
-  })
-  const headerOpacity = useTransform(scrollYProgress, [0, 0.2], [1, 0])
-  const headerY = useTransform(scrollYProgress, [0, 0.2], [0, -20])
+  });
+  const headerOpacity = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
+  const headerY = useTransform(scrollYProgress, [0, 0.2], [0, -20]);
 
-  const dailyLimit = 2
-  const [serverNext, setServerNext] = useState<number | null>(null)
+  const dailyLimit = 2;
+  const [serverNext, setServerNext] = useState<number | null>(null);
 
   const formatCooldown = (seconds: number) => {
-    const h = Math.floor(seconds / 3600)
-    const m = Math.floor((seconds % 3600) / 60)
-    const s = seconds % 60
-    if (h > 0) return `${h}h ${m}m`
-    if (m > 0) return `${m}m ${s}s`
-    return `${s}s`
-  }
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    if (h > 0) return `${h}h ${m}m`;
+    if (m > 0) return `${m}m ${s}s`;
+    return `${s}s`;
+  };
 
   const playSound = () => {
     try {
-      const audio = new Audio("/sound.mp3")
-      audio.play().catch(() => {})
+      const audio = new Audio("/sound.mp3");
+      audio.play().catch(() => {});
     } catch {}
-  }
+  };
 
   // Removed unused dayString helper
 
   const addRecord = (type: "BGP" | "USDT", amount: number) => {
     try {
-      const key = "claimRecords"
-      const existing = JSON.parse(localStorage.getItem(key) || "[]")
-      const next = [...existing, { type, amount, ts: Date.now() }].slice(-100)
-      localStorage.setItem(key, JSON.stringify(next))
+      const key = "claimRecords";
+      const existing = JSON.parse(localStorage.getItem(key) || "[]");
+      const next = [...existing, { type, amount, ts: Date.now() }].slice(-100);
+      localStorage.setItem(key, JSON.stringify(next));
     } catch {}
-  }
+  };
 
   // Removed unused addTokenToWallet helper
 
   useEffect(() => {
-    const timer = setTimeout(() => setMounted(true), 0)
-    return () => clearTimeout(timer)
-  }, [])
+    const timer = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Server-driven status
 
   const fetchStatus = useCallback(async () => {
     try {
-      const addr = (typeof window !== "undefined" && localStorage.getItem("walletAddress")) || ""
-      const res = await fetch(`/api/airdrop/status${addr ? `?addr=${addr}` : ""}`, { cache: "no-store" })
-      const data = await res.json()
-      setTodayCount(data.claimsToday || 0)
-      setServerNext(data.next || null)
-      const now = Date.now()
-      const diff = data.next ? Math.max(0, Math.ceil((data.next - now) / 1000)) : 0
-      setCooldown(data.claimable ? 0 : diff)
-      setStatus(data.claimable ? "ready" : "cooldown")
+      const addr =
+        (typeof window !== "undefined" &&
+          localStorage.getItem("walletAddress")) ||
+        "";
+      const res = await fetch(
+        `/api/airdrop/status${addr ? `?addr=${addr}` : ""}`,
+        { cache: "no-store" },
+      );
+      const data = await res.json();
+      setTodayCount(data.claimsToday || 0);
+      setServerNext(data.next || null);
+      const now = Date.now();
+      const diff = data.next
+        ? Math.max(0, Math.ceil((data.next - now) / 1000))
+        : 0;
+      setCooldown(data.claimable ? 0 : diff);
+      setStatus(data.claimable ? "ready" : "cooldown");
     } catch {
-      setStatus("ready")
+      setStatus("ready");
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
     // Schedule to avoid synchronous setState in effect body
     const id = setTimeout(() => {
-      void fetchStatus()
-    }, 0)
-    return () => clearTimeout(id)
-  }, [fetchStatus])
+      void fetchStatus();
+    }, 0);
+    return () => clearTimeout(id);
+  }, [fetchStatus]);
 
   useEffect(() => {
-    if (status !== "cooldown") return
+    if (status !== "cooldown") return;
     const id = setInterval(() => {
       setCooldown((c) => {
-        const next = Math.max(0, c - 1)
-        if (next === 0) fetchStatus()
-        return next
-      })
-    }, 1000)
-    return () => clearInterval(id)
-  }, [status, fetchStatus])
+        const next = Math.max(0, c - 1);
+        if (next === 0) fetchStatus();
+        return next;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [status, fetchStatus]);
 
   // Reset daily count on day change while page is open
   useEffect(() => {
     const id = setInterval(() => {
-      void fetchStatus()
-    }, 60000)
-    return () => clearInterval(id)
-  }, [fetchStatus])
+      void fetchStatus();
+    }, 60000);
+    return () => clearInterval(id);
+  }, [fetchStatus]);
 
   const onInteract = async () => {
-    if (status !== "ready") return
-    setStatus("pending")
+    if (status !== "ready") return;
+    setStatus("pending");
     try {
-      const addr = (typeof window !== "undefined" && localStorage.getItem("walletAddress")) || ""
-      const res = await fetch(`/api/airdrop/claim${addr ? `?addr=${addr}` : ""}`, { method: "POST" })
-      const data = await res.json()
+      const addr =
+        (typeof window !== "undefined" &&
+          localStorage.getItem("walletAddress")) ||
+        "";
+      const res = await fetch(
+        `/api/airdrop/claim${addr ? `?addr=${addr}` : ""}`,
+        { method: "POST" },
+      );
+      const data = await res.json();
       if (!res.ok || !data.success) {
-        await fetchStatus()
-        setStatus("cooldown")
-        return
+        await fetchStatus();
+        setStatus("cooldown");
+        return;
       }
-      setShowDailyRewardAnim(true)
+      setShowDailyRewardAnim(true);
       setTimeout(() => {
-        setShowDailyRewardAnim(false)
-        onClaim({ usdt: data.payout?.usdt, bgp: data.payout?.bgp })
-        setTodayCount(data.claimsToday || 0)
+        setShowDailyRewardAnim(false);
+        onClaim({ usdt: data.payout?.usdt, bgp: data.payout?.bgp });
+        setTodayCount(data.claimsToday || 0);
         if (data.next) {
-          const diff = Math.max(0, Math.ceil((data.next - Date.now()) / 1000))
-          setCooldown(diff)
-          setStatus("cooldown")
+          const diff = Math.max(0, Math.ceil((data.next - Date.now()) / 1000));
+          setCooldown(diff);
+          setStatus("cooldown");
         } else {
-          fetchStatus()
+          fetchStatus();
         }
-      }, 1200)
+      }, 1200);
     } catch {
-      setStatus("ready")
+      setStatus("ready");
     }
-  }
+  };
 
   const nextSlotLabel = useMemo(() => {
-    if (todayCount >= dailyLimit) return "00:00"
-    if (!serverNext) return ""
-    const h = new Date(serverNext).getHours()
-    return h === 12 ? "12:00" : "00:00"
-  }, [serverNext, todayCount])
+    if (todayCount >= dailyLimit) return "00:00";
+    if (!serverNext) return "";
+    const h = new Date(serverNext).getHours();
+    return h === 12 ? "12:00" : "00:00";
+  }, [serverNext, todayCount]);
 
   const onClaim = (payout?: { usdt?: number; bgp?: number }) => {
-    playSound()
-    setClaimOverlay({ open: true, usdt: payout?.usdt, bgp: payout?.bgp })
-    if (payout?.bgp) addRecord("BGP", payout.bgp)
-    if (payout?.usdt) addRecord("USDT", payout.usdt)
-  }
+    playSound();
+    setClaimOverlay({ open: true, usdt: payout?.usdt, bgp: payout?.bgp });
+    if (payout?.bgp) addRecord("BGP", payout.bgp);
+    if (payout?.usdt) addRecord("USDT", payout.usdt);
+  };
 
   // Removed unused randomAddress helper
 
   if (!mounted) {
-    return null
+    return null;
   }
 
   return (
@@ -188,24 +208,45 @@ export default function HomePage() {
           autoCloseMs={null}
           onClose={() => setClaimOverlay({ open: false })}
         />
-        <DailyRewardAnimation open={showDailyRewardAnim} onClose={() => setShowDailyRewardAnim(false)} />
+        <DailyRewardAnimation
+          open={showDailyRewardAnim}
+          onClose={() => setShowDailyRewardAnim(false)}
+        />
 
-        <Dialog open={showBLADialog} onOpenChange={setShowBLADialog}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle className="text-center text-xl font-bold bg-linear-to-r from-primary via-orange-500 to-orange-600 bg-clip-text text-transparent">
-                {t("addBLAToWallet")}
-              </DialogTitle>
-              <DialogDescription className="text-center text-lg pt-4">{t("addBLANotDeveloped")}</DialogDescription>
-            </DialogHeader>
-          </DialogContent>
-        </Dialog>
+        {/* Simple in-site dialog */}
+        {showAddBGPDialog && (
+          <div
+            className="fixed inset-0 z-2000 bg-black/60 flex items-center justify-center p-4"
+            onClick={() => setShowAddBGPDialog(false)}
+          >
+            <div
+              className="bg-background rounded-lg border p-6 w-full max-w-sm text-center shadow-lg"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-xl font-bold bg-linear-to-r from-primary via-orange-500 to-orange-600 bg-clip-text text-transparent">
+                {t("addBGPToWallet")}
+              </h3>
+              <p className="text-base text-foreground/90 pt-4">
+                {t("addBGPNotDeveloped")}
+              </p>
+              <div className="mt-6 flex justify-center">
+                <Button onClick={() => setShowAddBGPDialog(false)}>OK</Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <SiteHeader />
 
-        <div ref={containerRef} className="relative z-0 w-full h-screen overflow-y-auto overflow-x-hidden">
+        <div
+          ref={containerRef}
+          className="relative z-0 w-full h-screen overflow-y-auto overflow-x-hidden"
+        >
           <div className="pt-6 pb-20 px-4 space-y-8 max-w-2xl mx-auto">
-            <motion.div style={{ opacity: headerOpacity, y: headerY }} className="mb-8">
+            <motion.div
+              style={{ opacity: headerOpacity, y: headerY }}
+              className="mb-8"
+            >
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -229,7 +270,9 @@ export default function HomePage() {
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-linear-to-r from-primary/20 to-orange-500/20 border border-primary/30 mb-4"
                   >
                     <Rocket className="w-4 h-4 text-primary" />
-                    <span className="text-sm font-semibold text-primary">Belachain Airdrop</span>
+                    <span className="text-sm font-semibold text-primary">
+                      Belachain Airdrop
+                    </span>
                   </motion.div>
 
                   <h1 className="text-6xl font-extrabold mb-4 leading-tight">
@@ -270,7 +313,7 @@ export default function HomePage() {
               transition={{ duration: 0.4, delay: 0.3 }}
               className="relative"
             >
-              <div className="absolute inset-0 bg-linear-to-r from-primary/30 via-orange-500/30 to-orange-600/30 rounded-3xl blur-2xl animate-pulse" />
+              <div className="absolute inset-0 bg-linear-to-r from-primary/30 via-orange-500/30 to-orange-600/30 rounded-3xl blur-2xl animate-pulse pointer-events-none" />
               <Button
                 onClick={onInteract}
                 disabled={status !== "ready"}
@@ -329,7 +372,9 @@ export default function HomePage() {
                 className="mt-4 flex items-center justify-center gap-4"
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">{t("todayProgress")}:</span>
+                  <span className="text-sm text-muted-foreground">
+                    {t("todayProgress")}:
+                  </span>
                   <div className="flex gap-1">
                     {Array.from({ length: dailyLimit }).map((_, i) => (
                       <motion.div
@@ -338,7 +383,9 @@ export default function HomePage() {
                         animate={{ scale: 1 }}
                         transition={{ delay: 0.6 + i * 0.1 }}
                         className={`w-3 h-3 rounded-full ${
-                          i < todayCount ? "bg-linear-to-r from-primary to-orange-500" : "bg-muted"
+                          i < todayCount
+                            ? "bg-linear-to-r from-primary to-orange-500"
+                            : "bg-muted"
                         }`}
                       />
                     ))}
@@ -353,9 +400,9 @@ export default function HomePage() {
                 <Button
                   variant="outline"
                   className="w-full max-w-xs bg-transparent"
-                  onClick={() => setShowBLADialog(true)}
+                  onClick={() => setShowAddBGPDialog(true)}
                 >
-                  <PlusCircle className="w-4 h-4 mr-2" /> {t("addBLAToWallet")}
+                  <PlusCircle className="w-4 h-4 mr-2" /> {t("addBGPToWallet")}
                 </Button>
               </div>
             </motion.div>
@@ -364,19 +411,10 @@ export default function HomePage() {
 
             {/* Activity feed moved to Me page */}
 
-            <NavMenu />
-
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1 }}
-              className="text-center text-xs text-muted-foreground pt-6 pb-4"
-            >
-              {t("gasNote")}
-            </motion.div>
+            {/* <NavMenu /> */}
           </div>
         </div>
       </div>
     </WarpBackground>
-  )
+  );
 }
