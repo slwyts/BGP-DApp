@@ -1,17 +1,15 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LocaleToggle } from "@/components/locale-toggle";
-import { useLocale } from "@/components/locale-provider";
 import { useState } from "react";
 import { Sidebar } from "@/components/sidebar";
 import Image from "next/image";
 
 export function SiteHeader() {
-  const { t } = useLocale();
   const [open, setOpen] = useState(false);
   return (
     <motion.header

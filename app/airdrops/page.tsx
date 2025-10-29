@@ -1,208 +1,174 @@
-"use client";
+"use client"
 
-import { motion, useScroll, useTransform } from "framer-motion";
-import { Timer, TrendingUp, Sparkles, Zap, Gift, Rocket, PlusCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { GlobeAirdrop } from "@/components/globe-airdrop";
-import { WarpBackground } from "@/components/ui/warp-background";
-import { SiteHeader } from "@/components/site-header";
-import { useLocale } from "@/components/locale-provider";
-import { ClaimAnimationOverlay } from "@/components/claim-animation-overlay";
-import { DailyRewardAnimation } from "@/components/daily-reward-animation";
-import { NavMenu } from "@/components/nav-menu";
-import { EnhancedRewardCard } from "@/components/enhanced-reward-card";
-import { StatsGrid } from "@/components/stats-grid";
-import { airdropManager } from "@/lib/airdrop";
-import { useEffect, useState, useRef, useMemo } from "react";
+import { motion, useScroll, useTransform } from "motion/react"
+import { Timer, Sparkles, Zap, Rocket, PlusCircle } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { GlobeAirdrop } from "@/components/globe-airdrop"
+import { WarpBackground } from "@/components/ui/warp-background"
+import { SiteHeader } from "@/components/site-header"
+import { useLocale } from "@/components/locale-provider"
+import { ClaimAnimationOverlay } from "@/components/claim-animation-overlay"
+import { DailyRewardAnimation } from "@/components/daily-reward-animation"
+import { NavMenu } from "@/components/nav-menu"
+import { StatsGrid } from "@/components/stats-grid"
+import { useEffect, useState, useRef, useMemo, useCallback } from "react"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 export default function HomePage() {
-  const { t } = useLocale();
-  const [mounted, setMounted] = useState(false);
-  const [status, setStatus] = useState<"ready" | "pending" | "cooldown">(
-    "ready",
-  );
-  const [cooldown, setCooldown] = useState(0);
-  const [todayCount, setTodayCount] = useState(0);
-  const [showClaimAnim, setShowClaimAnim] = useState(false);
-  const [claimOverlay, setClaimOverlay] = useState<{ open: boolean; usdt?: number; bgp?: number }>({ open: false });
-  const [showDailyRewardAnim, setShowDailyRewardAnim] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [hydrated, setHydrated] = useState(false);
+  const { t } = useLocale()
+  const [mounted, setMounted] = useState(false)
+  const [status, setStatus] = useState<"ready" | "pending" | "cooldown">("ready")
+  const [cooldown, setCooldown] = useState(0)
+  const [todayCount, setTodayCount] = useState(0)
+  // Removed unused claim animation state
+  const [claimOverlay, setClaimOverlay] = useState<{ open: boolean; usdt?: number; bgp?: number }>({ open: false })
+  const [showDailyRewardAnim, setShowDailyRewardAnim] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [hydrated, setHydrated] = useState(false)
+  const [showBLADialog, setShowBLADialog] = useState(false)
 
   useEffect(() => {
-    const timer = setTimeout(() => setHydrated(true), 0);
-    return () => clearTimeout(timer);
-  }, []);
+    const timer = setTimeout(() => setHydrated(true), 0)
+    return () => clearTimeout(timer)
+  }, [])
 
   const { scrollYProgress } = useScroll({
     container: hydrated ? containerRef : undefined,
-  });
-  const headerOpacity = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
-  const headerY = useTransform(scrollYProgress, [0, 0.2], [0, -20]);
+  })
+  const headerOpacity = useTransform(scrollYProgress, [0, 0.2], [1, 0])
+  const headerY = useTransform(scrollYProgress, [0, 0.2], [0, -20])
 
-  const dailyLimit = 2;
-  const bgpBalance = 12345;
-  const contribution = 6789;
-  const estimated = 2000;
-  const [serverNext, setServerNext] = useState<number | null>(null);
+  const dailyLimit = 2
+  const [serverNext, setServerNext] = useState<number | null>(null)
 
   const formatCooldown = (seconds: number) => {
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
-    if (h > 0) return `${h}h ${m}m`;
-    if (m > 0) return `${m}m ${s}s`;
-    return `${s}s`;
-  };
+    const h = Math.floor(seconds / 3600)
+    const m = Math.floor((seconds % 3600) / 60)
+    const s = seconds % 60
+    if (h > 0) return `${h}h ${m}m`
+    if (m > 0) return `${m}m ${s}s`
+    return `${s}s`
+  }
 
   const playSound = () => {
     try {
-      const audio = new Audio("/sound.mp3");
-      audio.play().catch(() => {});
+      const audio = new Audio("/sound.mp3")
+      audio.play().catch(() => {})
     } catch {}
-  };
+  }
 
-  const dayString = (d: Date) =>
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
-      d.getDate(),
-    ).padStart(2, "0")}`;
+  // Removed unused dayString helper
 
-  const addRecord = (type: 'BGP' | 'USDT', amount: number) => {
+  const addRecord = (type: "BGP" | "USDT", amount: number) => {
     try {
-      const key = 'claimRecords';
-      const existing = JSON.parse(localStorage.getItem(key) || '[]');
-      const next = [
-        ...existing,
-        { type, amount, ts: Date.now() },
-      ].slice(-100);
-      localStorage.setItem(key, JSON.stringify(next));
+      const key = "claimRecords"
+      const existing = JSON.parse(localStorage.getItem(key) || "[]")
+      const next = [...existing, { type, amount, ts: Date.now() }].slice(-100)
+      localStorage.setItem(key, JSON.stringify(next))
     } catch {}
-  };
+  }
 
-  const addTokenToWallet = async (
-    address: string,
-    symbol: string,
-    decimals = 18,
-    image?: string,
-  ) => {
-    const anyWindow = window as any;
-    if (!anyWindow?.ethereum) return;
-    try {
-      await anyWindow.ethereum.request({
-        method: "wallet_watchAsset",
-        params: { type: "ERC20", options: { address, symbol, decimals, image } },
-      });
-    } catch {}
-  };
+  // Removed unused addTokenToWallet helper
 
   useEffect(() => {
-    const timer = setTimeout(() => setMounted(true), 0);
-    return () => clearTimeout(timer);
-  }, []);
+    const timer = setTimeout(() => setMounted(true), 0)
+    return () => clearTimeout(timer)
+  }, [])
 
   // Server-driven status
-  const getAddr = () =>
-    (typeof window !== "undefined" && localStorage.getItem("walletAddress")) || "";
 
-  const fetchStatus = async () => {
+  const fetchStatus = useCallback(async () => {
     try {
-      const addr = getAddr();
-      const data = airdropManager.getStatus(addr);
-      setTodayCount(data.claimsToday || 0);
-      setServerNext(data.next || null);
-      const now = Date.now();
-      const diff = data.next ? Math.max(0, Math.ceil((data.next - now) / 1000)) : 0;
-      setCooldown(data.claimable ? 0 : diff);
-      setStatus(data.claimable ? "ready" : "cooldown");
+      const addr = (typeof window !== "undefined" && localStorage.getItem("walletAddress")) || ""
+      const res = await fetch(`/api/airdrop/status${addr ? `?addr=${addr}` : ""}`, { cache: "no-store" })
+      const data = await res.json()
+      setTodayCount(data.claimsToday || 0)
+      setServerNext(data.next || null)
+      const now = Date.now()
+      const diff = data.next ? Math.max(0, Math.ceil((data.next - now) / 1000)) : 0
+      setCooldown(data.claimable ? 0 : diff)
+      setStatus(data.claimable ? "ready" : "cooldown")
     } catch {
-      setStatus("ready");
+      setStatus("ready")
     }
-  };
+  }, [])
 
   useEffect(() => {
-    fetchStatus();
-  }, []);
+    // Schedule to avoid synchronous setState in effect body
+    const id = setTimeout(() => {
+      void fetchStatus()
+    }, 0)
+    return () => clearTimeout(id)
+  }, [fetchStatus])
 
   useEffect(() => {
-    if (status !== "cooldown") return;
+    if (status !== "cooldown") return
     const id = setInterval(() => {
       setCooldown((c) => {
-        const next = Math.max(0, c - 1);
-        if (next === 0) fetchStatus();
-        return next;
-      });
-    }, 1000);
-    return () => clearInterval(id);
-  }, [status]);
+        const next = Math.max(0, c - 1)
+        if (next === 0) fetchStatus()
+        return next
+      })
+    }, 1000)
+    return () => clearInterval(id)
+  }, [status, fetchStatus])
 
   // Reset daily count on day change while page is open
   useEffect(() => {
     const id = setInterval(() => {
-      fetchStatus();
-    }, 60000);
-    return () => clearInterval(id);
-  }, []);
+      void fetchStatus()
+    }, 60000)
+    return () => clearInterval(id)
+  }, [fetchStatus])
 
   const onInteract = async () => {
-    if (status !== "ready") return;
-    setStatus("pending");
+    if (status !== "ready") return
+    setStatus("pending")
     try {
-      const addr = getAddr();
-      const data = airdropManager.claim(addr);
-      if (!data.success) {
-        await fetchStatus();
-        setStatus("cooldown");
-        return;
+      const addr = (typeof window !== "undefined" && localStorage.getItem("walletAddress")) || ""
+      const res = await fetch(`/api/airdrop/claim${addr ? `?addr=${addr}` : ""}`, { method: "POST" })
+      const data = await res.json()
+      if (!res.ok || !data.success) {
+        await fetchStatus()
+        setStatus("cooldown")
+        return
       }
-      setShowDailyRewardAnim(true);
+      setShowDailyRewardAnim(true)
       setTimeout(() => {
-        setShowDailyRewardAnim(false);
-        onClaim({ usdt: data.payout?.usdt, bgp: data.payout?.bgp });
-        setTodayCount(data.claimsToday || 0);
+        setShowDailyRewardAnim(false)
+        onClaim({ usdt: data.payout?.usdt, bgp: data.payout?.bgp })
+        setTodayCount(data.claimsToday || 0)
         if (data.next) {
-          const diff = Math.max(0, Math.ceil((data.next - Date.now()) / 1000));
-          setCooldown(diff);
-          setStatus("cooldown");
+          const diff = Math.max(0, Math.ceil((data.next - Date.now()) / 1000))
+          setCooldown(diff)
+          setStatus("cooldown")
         } else {
-          fetchStatus();
+          fetchStatus()
         }
-      }, 1200);
+      }, 1200)
     } catch {
-      setStatus("ready");
+      setStatus("ready")
     }
-  };
+  }
 
   const nextSlotLabel = useMemo(() => {
-    if (todayCount >= dailyLimit) return "00:00";
-    if (!serverNext) return "";
-    const h = new Date(serverNext).getHours();
-    return h === 12 ? "12:00" : "00:00";
-  }, [serverNext, todayCount]);
+    if (todayCount >= dailyLimit) return "00:00"
+    if (!serverNext) return ""
+    const h = new Date(serverNext).getHours()
+    return h === 12 ? "12:00" : "00:00"
+  }, [serverNext, todayCount])
 
   const onClaim = (payout?: { usdt?: number; bgp?: number }) => {
-    playSound();
-    setClaimOverlay({ open: true, usdt: payout?.usdt, bgp: payout?.bgp });
-    if (payout?.bgp) addRecord('BGP', payout.bgp);
-    if (payout?.usdt) addRecord('USDT', payout.usdt);
-  };
+    playSound()
+    setClaimOverlay({ open: true, usdt: payout?.usdt, bgp: payout?.bgp })
+    if (payout?.bgp) addRecord("BGP", payout.bgp)
+    if (payout?.usdt) addRecord("USDT", payout.usdt)
+  }
 
-  const randomAddress = () => {
-    try {
-      const bytes = new Uint8Array(20);
-      (window.crypto || crypto).getRandomValues(bytes);
-      return (
-        "0x" + Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("")
-      );
-    } catch {
-      // Fallback
-      let hex = "";
-      for (let i = 0; i < 40; i++) hex += Math.floor(Math.random() * 16).toString(16);
-      return "0x" + hex;
-    }
-  };
+  // Removed unused randomAddress helper
 
   if (!mounted) {
-    return null;
+    return null
   }
 
   return (
@@ -222,22 +188,24 @@ export default function HomePage() {
           autoCloseMs={null}
           onClose={() => setClaimOverlay({ open: false })}
         />
-        <DailyRewardAnimation
-          open={showDailyRewardAnim}
-          onClose={() => setShowDailyRewardAnim(false)}
-        />
+        <DailyRewardAnimation open={showDailyRewardAnim} onClose={() => setShowDailyRewardAnim(false)} />
+
+        <Dialog open={showBLADialog} onOpenChange={setShowBLADialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-center text-xl font-bold bg-linear-to-r from-primary via-orange-500 to-orange-600 bg-clip-text text-transparent">
+                {t("addBLAToWallet")}
+              </DialogTitle>
+              <DialogDescription className="text-center text-lg pt-4">{t("addBLANotDeveloped")}</DialogDescription>
+            </DialogHeader>
+          </DialogContent>
+        </Dialog>
 
         <SiteHeader />
 
-        <div
-          ref={containerRef}
-          className="relative z-0 w-full h-screen overflow-y-auto overflow-x-hidden"
-        >
+        <div ref={containerRef} className="relative z-0 w-full h-screen overflow-y-auto overflow-x-hidden">
           <div className="pt-6 pb-20 px-4 space-y-8 max-w-2xl mx-auto">
-            <motion.div
-              style={{ opacity: headerOpacity, y: headerY }}
-              className="mb-8"
-            >
+            <motion.div style={{ opacity: headerOpacity, y: headerY }} className="mb-8">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -261,9 +229,7 @@ export default function HomePage() {
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-linear-to-r from-primary/20 to-orange-500/20 border border-primary/30 mb-4"
                   >
                     <Rocket className="w-4 h-4 text-primary" />
-                    <span className="text-sm font-semibold text-primary">
-                      Belachain Airdrop
-                    </span>
+                    <span className="text-sm font-semibold text-primary">Belachain Airdrop</span>
                   </motion.div>
 
                   <h1 className="text-6xl font-extrabold mb-4 leading-tight">
@@ -363,9 +329,7 @@ export default function HomePage() {
                 className="mt-4 flex items-center justify-center gap-4"
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">
-                    {t("todayProgress")}:
-                  </span>
+                  <span className="text-sm text-muted-foreground">{t("todayProgress")}:</span>
                   <div className="flex gap-1">
                     {Array.from({ length: dailyLimit }).map((_, i) => (
                       <motion.div
@@ -374,9 +338,7 @@ export default function HomePage() {
                         animate={{ scale: 1 }}
                         transition={{ delay: 0.6 + i * 0.1 }}
                         className={`w-3 h-3 rounded-full ${
-                          i < todayCount
-                            ? "bg-linear-to-r from-primary to-orange-500"
-                            : "bg-muted"
+                          i < todayCount ? "bg-linear-to-r from-primary to-orange-500" : "bg-muted"
                         }`}
                       />
                     ))}
@@ -387,52 +349,16 @@ export default function HomePage() {
                 </div>
               </motion.div>
 
-              <div className="mt-4 grid grid-cols-2 gap-3">
+              <div className="mt-4 flex justify-center">
                 <Button
                   variant="outline"
-                  className="w-full"
-                  onClick={() =>
-                    addTokenToWallet(
-                      randomAddress(),
-                      "BGP",
-                    )
-                  }
-                >
-                  <PlusCircle className="w-4 h-4 mr-2" /> {t("addBGPToWallet")}
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() =>
-                    addTokenToWallet(
-                      randomAddress(),
-                      "BLA",
-                    )
-                  }
+                  className="w-full max-w-xs bg-transparent"
+                  onClick={() => setShowBLADialog(true)}
                 >
                   <PlusCircle className="w-4 h-4 mr-2" /> {t("addBLAToWallet")}
                 </Button>
               </div>
             </motion.div>
-
-            <div className="space-y-5">
-              <EnhancedRewardCard
-                title="BGP"
-                subtitle={`${t("myBGP")}: ${bgpBalance.toLocaleString()}`}
-                buttonText={t("claim")}
-                icon={Gift}
-                delay={0}
-                showButton={false}
-              />
-              <EnhancedRewardCard
-                title="USDT"
-                subtitle={`${t("myContribution")}: ${contribution.toLocaleString()}`}
-                buttonText={t("claim")}
-                icon={TrendingUp}
-                delay={0.1}
-                showButton={false}
-              />
-            </div>
 
             <StatsGrid />
 
@@ -452,5 +378,5 @@ export default function HomePage() {
         </div>
       </div>
     </WarpBackground>
-  );
+  )
 }

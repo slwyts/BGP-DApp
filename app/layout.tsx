@@ -7,11 +7,28 @@ import { LocaleProvider } from "@/components/locale-provider";
 
 import { Geist, Geist_Mono, Source_Serif_4 } from "next/font/google";
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const geist = Geist({
   subsets: ["latin"],
   weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
   display: "swap",
   preload: true,
+});
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const geistMono = Geist_Mono({
+  subsets: ["latin"],
+  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
+  display: "swap",
+  preload: true,
+});
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const sourceSerif_4 = Source_Serif_4({
+  subsets: ["latin"],
+  weight: ["200", "300", "400", "500", "600", "700", "800", "900"],
+  display: "swap",
+  preload: false,
 });
 
 export const metadata: Metadata = {
@@ -30,7 +47,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${geist.className} font-sans antialiased`} suppressHydrationWarning>
+      <body className={`font-sans antialiased`} suppressHydrationWarning>
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"

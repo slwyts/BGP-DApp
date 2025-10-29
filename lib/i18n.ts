@@ -81,17 +81,13 @@ export const translations = {
     landingDescription:
       "Participate in the blockchain revolution through innovative airdrop mechanisms and reward systems.\nStart your DeFi journey now.",
     airdropRewardsTitle: "Airdrop Rewards",
-    airdropRewardsDesc:
-      "Participate in daily interactions to earn generous BGP airdrop rewards",
+    airdropRewardsDesc: "Participate in daily interactions to earn generous BGP airdrop rewards",
     levelSystemTitle: "Level System",
-    levelSystemDesc:
-      "Upgrade levels through contribution value and unlock more USDT and BGP rewards",
+    levelSystemDesc: "Upgrade levels through contribution value and unlock more USDT and BGP rewards",
     secureReliableTitle: "Secure and Reliable",
-    secureReliableDesc:
-      "Based on Arbitrum network to ensure your assets are secure",
+    secureReliableDesc: "Based on Arbitrum network to ensure your assets are secure",
     instantTransactionsTitle: "Instant Transactions",
-    instantTransactionsDesc:
-      "Fast and convenient on-chain interactions with real-time earnings viewing",
+    instantTransactionsDesc: "Fast and convenient on-chain interactions with real-time earnings viewing",
     readyToStart: "Ready to start?",
     readyToStartDesc:
       "Connect your wallet to start participating in daily interactions and earn generous token rewards and level upgrades.",
@@ -117,6 +113,17 @@ export const translations = {
     addTokenToWallet: "Add Token to Wallet",
     addBGPToWallet: "Add BGP to Wallet",
     addBLAToWallet: "Add BLA to Wallet",
+    addBLANotDeveloped: "Not yet developed",
+    withdrawButton: "Withdraw",
+    globalData: "Global Data",
+    totalParticipatingAddresses: "Total Participating Addresses",
+    totalInteractions: "Total Interactions",
+    personalData: "Personal Data",
+    personalCumulativeInteractions: "Personal Cumulative Interactions",
+    activeDays: "Active Days",
+    totalInteractionRewards: "Total Interaction Rewards",
+    levelAchievementRewards: "Level Achievement U Rewards",
+    cumulativeRewards: "Cumulative Rewards",
   },
   zh: {
     appName: "Belachain",
@@ -197,8 +204,7 @@ export const translations = {
     welcomeTo: "欢迎来到 Belachain",
     belaChainTitle: "BelaChain",
     aiRwaTagline: "全球首条 AI 驱动的 RWA 公链",
-    landingDescription:
-      "通过创新的空投机制和奖励系统，让每个人都能参与到区块链革命中来。\n立即开始您的 DeFi 之旅。",
+    landingDescription: "通过创新的空投机制和奖励系统，让每个人都能参与到区块链革命中来。\n立即开始您的 DeFi 之旅。",
     airdropRewardsTitle: "空投奖励",
     airdropRewardsDesc: "参与每日交互，获取丰厚的 BGP 代币空投奖励",
     levelSystemTitle: "等级系统",
@@ -208,8 +214,7 @@ export const translations = {
     instantTransactionsTitle: "即时交易",
     instantTransactionsDesc: "快速便捷的链上交互，实时查看收益",
     readyToStart: "准备好开始了吗？",
-    readyToStartDesc:
-      "连接您的钱包，立即开始参与每日交互，获取丰厚的代币奖励和等级提升。",
+    readyToStartDesc: "连接您的钱包，立即开始参与每日交互，获取丰厚的代币奖励和等级提升。",
     startClaimingAirdrops: "领取空投",
     learnMore: "了解更多",
     startNow: "立即开始",
@@ -232,7 +237,18 @@ export const translations = {
     addTokenToWallet: "添加代币到钱包",
     addBGPToWallet: "添加 BGP 到钱包",
     addBLAToWallet: "添加 BLA 到钱包",
+    addBLANotDeveloped: "暂未开发",
+    withdrawButton: "提现",
+    globalData: "全球数据",
+    totalParticipatingAddresses: "总参与地址",
+    totalInteractions: "总计交互",
+    personalData: "个人数据",
+    personalCumulativeInteractions: "个人累计交互",
+    activeDays: "活跃天数",
+    totalInteractionRewards: "总计交互收益",
+    levelAchievementRewards: "等级达成U奖励",
+    cumulativeRewards: "累计奖励",
   },
-};
+}
 
-export type Locale = keyof typeof translations;
+export type Locale = keyof typeof translations

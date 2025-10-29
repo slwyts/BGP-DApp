@@ -1,20 +1,20 @@
-"use client";
+"use client"
 
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import { SiteHeader } from "@/components/site-header";
-import { Button } from "@/components/ui/button";
-import { useLocale } from "@/components/locale-provider";
-import { DotPattern } from "@/components/ui/dot-pattern";
-import { Crown, TrendingUp } from "lucide-react";
-import { ClaimAnimationOverlay } from "@/components/claim-animation-overlay";
+import { useEffect, useState } from "react"
+import { motion } from "motion/react"
+import { SiteHeader } from "@/components/site-header"
+import { Button } from "@/components/ui/button"
+import { useLocale } from "@/components/locale-provider"
+import { DotPattern } from "@/components/ui/dot-pattern"
+import { Crown, TrendingUp, ArrowDownToLine } from "lucide-react"
+import { ClaimAnimationOverlay } from "@/components/claim-animation-overlay"
 
 type Level = {
-  v: number;
-  need: number;
-  usdt: number;
-  bgp: number;
-};
+  v: number
+  need: number
+  usdt: number
+  bgp: number
+}
 
 const LEVELS: Level[] = [
   { v: 1, need: 10, usdt: 0.1, bgp: 200 },
@@ -29,61 +29,62 @@ const LEVELS: Level[] = [
   { v: 10, need: 300000, usdt: 1000, bgp: 300000 },
   { v: 11, need: 502000, usdt: 2000, bgp: 500000 },
   { v: 12, need: 1000000, usdt: 10000, bgp: 1000000 },
-];
+]
 
 export default function RewardsPage() {
-  const { t } = useLocale();
-  const totalContribution = 12650;
-  const [claimed, setClaimed] = useState<number[]>([1, 2]);
-  const withdrawableUSDT = 7.5;
-  const [withdrawInput, setWithdrawInput] = useState(0);
-  const totalBGPClaimed = 4200;
-  const [overlay, setOverlay] = useState<{ open: boolean; usdt?: number; bgp?: number }>({ open: false });
-  const [records, setRecords] = useState<Array<{ type: 'USDT' | 'BGP'; amount: number; ts: number }>>([]);
+  const { t } = useLocale()
+  const totalContribution = 12650
+  const [claimed, setClaimed] = useState<number[]>([1, 2])
+  const withdrawableUSDT = 7.5
+  // Removed unused withdraw input state
+  const [overlay, setOverlay] = useState<{ open: boolean; usdt?: number; bgp?: number }>({ open: false })
+  const [records, setRecords] = useState<Array<{ type: "USDT" | "BGP"; amount: number; ts: number }>>([])
 
   const playSound = () => {
     try {
-      const audio = new Audio("/sound.mp3");
-      audio.play().catch(() => {});
+      const audio = new Audio("/sound.mp3")
+      audio.play().catch(() => {})
     } catch {}
-  };
+  }
 
   useEffect(() => {
+    let tid: number | undefined
     try {
-      const items = JSON.parse(localStorage.getItem('claimRecords') || '[]');
-      if (Array.isArray(items)) setRecords(items.slice().reverse());
+      const items = JSON.parse(localStorage.getItem("claimRecords") || "[]")
+      if (Array.isArray(items)) {
+        tid = window.setTimeout(() => {
+          setRecords(items.slice().reverse())
+        }, 0)
+      }
     } catch {}
-  }, [overlay.open]);
+    return () => {
+      if (tid !== undefined) clearTimeout(tid)
+    }
+  }, [overlay.open])
 
   const currentLevel = LEVELS.reduce((level, lv) => {
-    return totalContribution >= lv.need ? lv.v : level;
-  }, 0);
+    return totalContribution >= lv.need ? lv.v : level
+  }, 0)
 
-  const nextLevel = LEVELS.find((lv) => lv.need > totalContribution);
+  const nextLevel = LEVELS.find((lv) => lv.need > totalContribution)
 
-  const markClaimed = (v: number, usdt: number, bgp: number) => {
-    setClaimed((arr) => Array.from(new Set([...arr, v])));
-    playSound();
-    setOverlay({ open: true, usdt, bgp });
+  const markClaimed = (v: number, usdt: number, bgp: number, nowTs: number) => {
+    setClaimed((arr) => Array.from(new Set([...arr, v])))
+    playSound()
+    setOverlay({ open: true, usdt, bgp })
     try {
-      const key = 'claimRecords';
-      const existing = JSON.parse(localStorage.getItem(key) || '[]');
-      const now = Date.now();
-      const next = [...existing, { type: 'USDT', amount: usdt, ts: now }, { type: 'BGP', amount: bgp, ts: now }].slice(-100);
-      localStorage.setItem(key, JSON.stringify(next));
+      const key = "claimRecords"
+      const existing = JSON.parse(localStorage.getItem(key) || "[]")
+      const next = [...existing, { type: "USDT", amount: usdt, ts: nowTs }, { type: "BGP", amount: bgp, ts: nowTs }].slice(
+        -100,
+      )
+      localStorage.setItem(key, JSON.stringify(next))
     } catch {}
-  };
+  }
 
   return (
     <div className="relative min-h-screen">
-      <DotPattern
-        className="absolute inset-0 z-0"
-        width={20}
-        height={20}
-        cx={1}
-        cy={1}
-        cr={1}
-      />
+      <DotPattern className="absolute inset-0 z-0" width={20} height={20} cx={1} cy={1} cr={1} />
       <div className="absolute inset-0 bg-linear-to-b from-orange-500/5 via-transparent to-primary/5 z-0" />
 
       <div className="relative z-10 min-h-screen">
@@ -99,17 +100,11 @@ export default function RewardsPage() {
         </div>
 
         <div className="px-5 pb-10">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6"
-          >
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
             <h1 className="text-3xl font-bold mb-1 bg-linear-to-r from-primary via-orange-500 to-orange-600 bg-clip-text text-transparent">
               {t("rewards")}
             </h1>
-            <p className="text-muted-foreground text-sm">
-              {t("rewardsOverview")}
-            </p>
+            <p className="text-muted-foreground text-sm">{t("rewardsOverview")}</p>
           </motion.div>
 
           <motion.div
@@ -156,16 +151,13 @@ export default function RewardsPage() {
                   </div>
                   {nextLevel && (
                     <div className="text-xs text-muted-foreground mt-1">
-                      {t("nextAirdrop")}: V{nextLevel.v} (
-                      {nextLevel.need.toLocaleString()})
+                      {t("nextAirdrop")}: V{nextLevel.v} ({nextLevel.need.toLocaleString()})
                     </div>
                   )}
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-sm text-muted-foreground mb-1">
-                  {t("myContribution")}
-                </div>
+                <div className="text-sm text-muted-foreground mb-1">{t("myContribution")}</div>
                 <div className="text-2xl font-bold text-primary flex items-center gap-2">
                   <TrendingUp className="w-5 h-5" />
                   {totalContribution.toLocaleString()}
@@ -174,35 +166,28 @@ export default function RewardsPage() {
             </div>
           </motion.div>
 
-          <div className="grid grid-cols-3 gap-3 mb-6">
+          <div className="grid grid-cols-2 gap-3 mb-6">
             <div className="relative bg-card/30 backdrop-blur-md rounded-2xl p-4 border border-primary/20 text-center overflow-hidden">
               <div className="absolute top-0 left-0 w-4 h-4 border-t border-l border-primary/40" />
               <div className="absolute top-0 right-0 w-4 h-4 border-t border-r border-primary/40" />
-              <div className="text-2xl font-bold text-primary relative z-10">
-                {totalContribution.toLocaleString()}
-              </div>
-              <div className="text-xs text-muted-foreground relative z-10">
-                {t("myContribution")}
-              </div>
+              <div className="text-2xl font-bold text-primary relative z-10">{totalContribution.toLocaleString()}</div>
+              <div className="text-xs text-muted-foreground relative z-10">{t("myContribution")}</div>
             </div>
-            <div className="relative bg-card/30 backdrop-blur-md rounded-2xl p-4 border border-primary/20 text-center overflow-hidden">
+            <div className="relative bg-card/30 backdrop-blur-md rounded-2xl p-4 border border-primary/20 overflow-hidden">
               <div className="absolute top-0 left-0 w-4 h-4 border-t border-l border-primary/40" />
               <div className="absolute top-0 right-0 w-4 h-4 border-t border-r border-primary/40" />
-              <div className="text-2xl font-bold text-primary relative z-10">
-                {withdrawableUSDT} U
-              </div>
-              <div className="text-xs text-muted-foreground relative z-10">
-                {t("usdtWithdrawable")}
-              </div>
-            </div>
-            <div className="relative bg-card/30 backdrop-blur-md rounded-2xl p-4 border border-primary/20 text-center overflow-hidden">
-              <div className="absolute top-0 left-0 w-4 h-4 border-t border-l border-primary/40" />
-              <div className="absolute top-0 right-0 w-4 h-4 border-t border-r border-primary/40" />
-              <div className="text-2xl font-bold text-primary relative z-10">
-                {totalBGPClaimed.toLocaleString()}
-              </div>
-              <div className="text-xs text-muted-foreground relative z-10">
-                {t("bgpClaimed")}
+              <div className="relative z-10 space-y-2">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-primary">{withdrawableUSDT} U</div>
+                  <div className="text-xs text-muted-foreground">{t("usdtWithdrawable")}</div>
+                </div>
+                <Button
+                  size="sm"
+                  className="w-full bg-linear-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90"
+                >
+                  <ArrowDownToLine className="w-4 h-4 mr-1" />
+                  {t("withdrawButton")}
+                </Button>
               </div>
             </div>
           </div>
@@ -211,18 +196,16 @@ export default function RewardsPage() {
             <div className="text-sm font-semibold mb-3">V1 - V12</div>
             <div className="space-y-3">
               {LEVELS.map((lv) => {
-                const reached = totalContribution >= lv.need;
-                const isClaimed = claimed.includes(lv.v);
-                const progress = Math.min(1, totalContribution / lv.need);
-                const isCurrentLevel = lv.v === currentLevel;
+                const reached = totalContribution >= lv.need
+                const isClaimed = claimed.includes(lv.v)
+                const progress = Math.min(1, totalContribution / lv.need)
+                const isCurrentLevel = lv.v === currentLevel
 
                 return (
                   <div
                     key={lv.v}
                     className={`rounded-xl border p-4 bg-background/30 backdrop-blur-sm transition-all ${
-                      isCurrentLevel
-                        ? "border-primary/60 bg-primary/10 shadow-lg"
-                        : "border-primary/20"
+                      isCurrentLevel ? "border-primary/60 bg-primary/10 shadow-lg" : "border-primary/20"
                     }`}
                   >
                     <div className="flex items-center justify-between mb-2">
@@ -239,8 +222,7 @@ export default function RewardsPage() {
                       </div>
                     </div>
                     <div className="text-xs text-muted-foreground mb-3">
-                      {t("usdtReward")}: {lv.usdt} USDT · {t("bgpReward")}:{" "}
-                      {lv.bgp.toLocaleString()} BGP
+                      {t("usdtReward")}: {lv.usdt} USDT · {t("bgpReward")}: {lv.bgp.toLocaleString()} BGP
                     </div>
                     <div className="h-2 rounded-full bg-muted overflow-hidden mb-3">
                       <div
@@ -250,24 +232,27 @@ export default function RewardsPage() {
                     </div>
                     <div className="flex items-center justify-between">
                       <div className="text-xs text-muted-foreground">
-                        {reached
-                          ? isClaimed
-                            ? t("claimed")
-                            : t("claimable")
-                          : t("notReached")}{" "}
-                        • {Math.min(totalContribution, lv.need)}/{lv.need}
+                        {reached ? (isClaimed ? t("claimed") : t("claimable")) : t("notReached")} •{" "}
+                        {Math.min(totalContribution, lv.need)}/{lv.need}
                       </div>
                       <Button
                         size="sm"
                         disabled={!reached || isClaimed}
-                        onClick={() => markClaimed(lv.v, lv.usdt, lv.bgp)}
+                        onClick={(e) =>
+                          markClaimed(
+                            lv.v,
+                            lv.usdt,
+                            lv.bgp,
+                            Math.floor(performance.timeOrigin + (e.timeStamp || 0)),
+                          )
+                        }
                         className="transition-all duration-200 hover:scale-105 active:scale-95"
                       >
                         {isClaimed ? t("claimed") : t("claim")}
                       </Button>
                     </div>
                   </div>
-                );
+                )
               })}
             </div>
           </div>
@@ -279,9 +264,14 @@ export default function RewardsPage() {
             ) : (
               <div className="space-y-2">
                 {records.map((r, idx) => (
-                  <div key={idx} className="flex items-center justify-between rounded-xl border border-border p-3 bg-background/50">
+                  <div
+                    key={idx}
+                    className="flex items-center justify-between rounded-xl border border-border p-3 bg-background/50"
+                  >
                     <div className="text-xs text-muted-foreground">{new Date(r.ts).toLocaleString()}</div>
-                    <div className="text-sm font-semibold text-primary">+{r.amount} {r.type}</div>
+                    <div className="text-sm font-semibold text-primary">
+                      +{r.amount} {r.type}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -290,5 +280,5 @@ export default function RewardsPage() {
         </div>
       </div>
     </div>
-  );
+  )
 }

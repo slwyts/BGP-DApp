@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { ArrowUpRight, TrendingUp, Repeat, Gift } from "lucide-react";
 import { useLocale } from "@/components/locale-provider";
@@ -56,7 +56,7 @@ export function ActivityFeed() {
 
         <div className="flex items-center justify-between mb-6 relative z-10">
           <h2 className="text-3xl font-bold text-foreground">
-            {t("recentActivity")}
+            {t("recentTransactions")}
           </h2>
           <Button
             variant="ghost"

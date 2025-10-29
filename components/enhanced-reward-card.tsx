@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import type { LucideIcon } from "lucide-react";
 
@@ -11,7 +11,6 @@ interface EnhancedRewardCardProps {
   icon: LucideIcon;
   delay: number;
   onClaim?: () => void;
-  showButton?: boolean;
 }
 
 export function EnhancedRewardCard({
@@ -21,7 +20,6 @@ export function EnhancedRewardCard({
   icon: Icon,
   delay,
   onClaim,
-  showButton = true,
 }: EnhancedRewardCardProps) {
   return (
     <motion.div
@@ -64,21 +62,19 @@ export function EnhancedRewardCard({
             </div>
           </div>
 
-          {showButton && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: delay + 0.2 }}
-              className="w-full sm:w-auto shrink-0"
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: delay + 0.2 }}
+            className="w-full sm:w-auto shrink-0"
+          >
+            <Button
+              className="w-full sm:w-auto bg-linear-to-r from-primary via-orange-500 to-orange-600 hover:from-primary/90 hover:via-orange-500/90 hover:to-orange-600/90 text-white border-0 px-6 py-5 text-base font-semibold shadow-xl rounded-xl whitespace-nowrap"
+              onClick={onClaim}
             >
-              <Button
-                className="w-full sm:w-auto bg-linear-to-r from-primary via-orange-500 to-orange-600 hover:from-primary/90 hover:via-orange-500/90 hover:to-orange-600/90 text-white border-0 px-6 py-5 text-base font-semibold shadow-xl rounded-xl whitespace-nowrap"
-                onClick={onClaim}
-              >
-                {buttonText}
-              </Button>
-            </motion.div>
-          )}
+              {buttonText}
+            </Button>
+          </motion.div>
         </div>
       </div>
     </motion.div>

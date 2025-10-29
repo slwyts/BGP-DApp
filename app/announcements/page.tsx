@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { SiteHeader } from "@/components/site-header";
 import { useLocale } from "@/components/locale-provider";
 import { DotPattern } from "@/components/ui/dot-pattern";

@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import { Calendar, Crown, TrendingUp, Activity } from "lucide-react";
@@ -10,11 +10,41 @@ import { Particles } from "@/components/ui/particles";
 import { useEffect, useState } from "react";
 import { ActivityFeed } from "@/components/activity-feed";
 
+type ClaimRecord = {
+  type: string;
+  amount: number | string | null | undefined;
+};
+
+function isClaimRecord(value: unknown): value is ClaimRecord {
+  if (!value || typeof value !== "object") return false;
+  const v = value as { type?: unknown; amount?: unknown };
+  const typeOk = typeof v.type === "string";
+  const amountOk =
+    typeof v.amount === "number" ||
+    typeof v.amount === "string" ||
+    typeof v.amount === "undefined" ||
+    v.amount === null;
+  return typeOk && amountOk;
+}
+
 export default function MePage() {
   const { t } = useLocale();
   const address = "0x1234...5678";
   const network = "Arbitrum";
-  const [totalBGPClaimed, setTotalBGPClaimed] = useState(0);
+  const [totalBGPClaimed] = useState<number>(() => {
+    try {
+      const raw: unknown = JSON.parse(
+        localStorage.getItem("claimRecords") || "[]",
+      );
+      if (Array.isArray(raw)) {
+        return raw
+          .filter(isClaimRecord)
+          .filter((r) => r.type === "BGP")
+          .reduce((acc, r) => acc + (Number(r.amount) || 0), 0);
+      }
+    } catch {}
+    return 0;
+  });
 
   const loginDays = 45;
   const currentLevel = 3;
@@ -22,16 +52,9 @@ export default function MePage() {
 
   useEffect(() => {
     try {
-      localStorage.setItem('walletAddress', address.toLowerCase());
+      localStorage.setItem("walletAddress", address.toLowerCase());
     } catch {}
-    try {
-      const items = JSON.parse(localStorage.getItem('claimRecords') || '[]');
-      if (Array.isArray(items)) {
-        const sum = items.filter((r: any) => r.type === 'BGP').reduce((acc: number, r: any) => acc + (Number(r.amount) || 0), 0);
-        setTotalBGPClaimed(sum);
-      }
-    } catch {}
-  }, []);
+  }, [address]);
 
   // Removed IP fetch per spec
 
@@ -153,7 +176,7 @@ export default function MePage() {
           {/* Assets section removed per spec */}
 
           <div className="mt-6">
-            <h2 className="text-lg font-semibold mb-3">{t("recentTransactions")}</h2>
+            {/* <h2 className="text-lg font-semibold mb-3">{t("recentTransactions")}</h2> */}
             <ActivityFeed />
           </div>
 

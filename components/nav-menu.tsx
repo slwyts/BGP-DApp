@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { Box, Layers, Zap, Crown } from "lucide-react";
 import { useLocale } from "@/components/locale-provider";
 
