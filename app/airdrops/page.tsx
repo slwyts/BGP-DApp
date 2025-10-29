@@ -8,10 +8,10 @@ import { WarpBackground } from "@/components/ui/warp-background";
 import { SiteHeader } from "@/components/site-header";
 import { useLocale } from "@/components/locale-provider";
 import { ClaimAnimationOverlay } from "@/components/claim-animation-overlay";
-import { DailyRewardAnimation } from "@/components/daily-reward-animation"; // import { NavMenu } from "@/components/nav-menu"
+import { DailyRewardAnimation } from "@/components/daily-reward-animation";
 import { StatsGrid } from "@/components/stats-grid";
 import { useEffect, useState, useRef, useMemo, useCallback } from "react";
-// Dialog removed for this simple inline modal
+import { getAirdropStatus, claimAirdrop } from "@/lib/airdrop-client";
 
 export default function HomePage() {
   const { t } = useLocale();
@@ -81,19 +81,14 @@ export default function HomePage() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Server-driven status
-
-  const fetchStatus = useCallback(async () => {
+  // 客户端状态检查（替代服务器 API）
+  const fetchStatus = useCallback(() => {
     try {
       const addr =
         (typeof window !== "undefined" &&
           localStorage.getItem("walletAddress")) ||
-        "";
-      const res = await fetch(
-        `/api/airdrop/status${addr ? `?addr=${addr}` : ""}`,
-        { cache: "no-store" },
-      );
-      const data = await res.json();
+        "anon";
+      const data = getAirdropStatus(addr);
       setTodayCount(data.claimsToday || 0);
       setServerNext(data.next || null);
       const now = Date.now();
@@ -135,21 +130,17 @@ export default function HomePage() {
     return () => clearInterval(id);
   }, [fetchStatus]);
 
-  const onInteract = async () => {
+  const onInteract = () => {
     if (status !== "ready") return;
     setStatus("pending");
     try {
       const addr =
         (typeof window !== "undefined" &&
           localStorage.getItem("walletAddress")) ||
-        "";
-      const res = await fetch(
-        `/api/airdrop/claim${addr ? `?addr=${addr}` : ""}`,
-        { method: "POST" },
-      );
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        await fetchStatus();
+        "anon";
+      const data = claimAirdrop(addr);
+      if (!data.success) {
+        fetchStatus();
         setStatus("cooldown");
         return;
       }
