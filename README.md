@@ -1,36 +1,80 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## 开发文档
+玩法：链上交互 + 空投奖励 + 节点自治
 
-## Getting Started
+* 空投规模：100亿枚Bela生态激励代币BGP
+* 推广激励：300W USDT
+* 目标地址：100W
+* 目标日活：10W+
 
-First, run the development server:
+活动周期：此次BelaChain生态BGP用户增长计划将持续3个月；
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## BelaChain生态BGP活动激励
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+1、300W USDT所有参与注册用户瓜分现金大奖；
+2、2亿枚BelaChain公链代币BLA空投；
+3、前1W名新用户注册地址，绑定钱包即可获得5000BGP；
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 参与Bela生态提前抢位
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+$300W USDT激励池、2亿枚Bela空投、100W目标地址、10W+日活用户
 
-## Learn More
+### 如何操作：
 
-To learn more about Next.js, take a look at the following resources:
+* 在去中心化钱包创建以太坊二层Arb钱包；
+* 每天点击领取交互2次；
+* 每次约0.6-0.8U以太坊GAS费，默认至少0.6U （其实所谓的gas费是支付） 到我们owner钱包地址
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### BGP获取方式：
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Bela生态启动初期，为激励社区繁荣生态，前1W名新用户注册地址，绑定钱包即可获得5000BGP；
+目前一期BGP在Arb链发币，后期映射到主网BLA
+#### 链上交互获取
 
-## Deploy on Vercel
+每日产出2000 BGP
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+#### 反日蚀攻击机制
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+* 每次约0.6-0.8U以太坊GAS费，默认至少0.6U；
+* 每个IP地址限15个地址，超限额视为日蚀攻击；
+
+#### 邀请用户获取
+
+邀请用户可获得BGP和贡献值，并形成推荐网络，直推几人拿几代，最多15代
+
+| 层数 | BGP数量 | 贡献值 |
+| --- | --- | --- |
+| 1 | 800 | 8 |
+| 2 | 400 | 4 |
+| 3 | 200 | 2 |
+| 4-15代 | 100 | 1 |
+
+
+【邀请奖励特点】
+
+邀请奖励按层级衰减，最多可奖励至15层，每层邀请可获得不同数量的贡献值，贡献值可累积，达到一定数值可领取对应BGP和USDT奖励。
+
+#### 社区贡献获取
+
+社区累计贡献值奖励体系，贡献值每日累计，达标后可奖励BGP和USDT。
+
+| 等级 | 累计贡献值 | USDT奖励（累计10U才能提） | BGP奖励 |
+| --- | --- | --- | --- |
+| V1 | 10 | 0.1 | 200 |
+| V2 | 50 | 0.5 | 200 |
+| V3 | 100 | 1 | 200 |
+| V4 | 500 | 5 | 2000 |
+| V5 | 3000 | 20 | 8000 |
+| V6 | 1W | 100 | 1W |
+| V7 | 3W | 200 | 3W |
+| V8 | 5W | 300 | 5W |
+| V9 | 10W | 500 | 10W |
+| V10 | 30W | 1000 | 30W |
+| V11 | 50W | 2000 | 50W |
+| V12 | 100W | 1W | 100W |
+
+
+【累计贡献值奖励体系特点】
+
+* 阶梯式增长：贡献值呈阶梯增长，激励长期参与
+* 每日可领取：达标后奖励可每日领取，提供用于积极性
+* 双奖励机制：BGP和USDT双奖励，提供生态价值
