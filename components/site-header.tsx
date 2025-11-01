@@ -8,6 +8,7 @@ import { LocaleToggle } from "@/components/locale-toggle";
 import { useState } from "react";
 import { Sidebar } from "@/components/sidebar";
 import Image from "next/image";
+import Link from "next/link";
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
@@ -17,7 +18,7 @@ export function SiteHeader() {
       animate={{ y: 0, opacity: 1 }}
       className="relative z-50 w-full flex items-center justify-between px-0 py-0"
     >
-      <div className="flex items-center gap-3">
+      <Link href="/" className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity">
         <Image
           src="/BelachainLogo.jpg"
           alt="Belachain Logo"
@@ -25,7 +26,7 @@ export function SiteHeader() {
           height={40}
           className="rounded-lg"
         />
-      </div>
+      </Link>
 
       <div className="flex items-center gap-2">
         <ThemeToggle />

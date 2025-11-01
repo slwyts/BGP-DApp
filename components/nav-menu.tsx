@@ -18,7 +18,7 @@ export function NavMenu() {
   ];
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+    <div className="grid grid-cols-4 gap-3">
       {showDialog && (
         <div
           className="fixed inset-0 z-2000 bg-black/60 flex items-center justify-center p-4"

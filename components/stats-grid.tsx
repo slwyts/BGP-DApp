@@ -55,8 +55,8 @@ export function StatsGrid() {
     {
       icon: DollarSign,
       label: t("totalInteractionRewards"),
-      value: "12.5",
-      unit: "USDT",
+      value: "25,400",
+      unit: "BGP",
       gradient: "from-primary to-orange-500",
       bgGradient: "from-primary/10 to-orange-500/10",
     },
@@ -79,8 +79,8 @@ export function StatsGrid() {
     {
       icon: DollarSign,
       label: t("cumulativeRewards"),
-      value: "17.5",
-      unit: "USDT",
+      value: "35,800",
+      unit: "BGP",
       gradient: "from-orange-600 to-primary",
       bgGradient: "from-orange-600/10 to-primary/10",
     },

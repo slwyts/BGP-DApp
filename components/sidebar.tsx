@@ -12,11 +12,14 @@ import {
   Plane,
   Megaphone,
   Wallet,
+  Globe,
+  Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLocale } from "@/components/locale-provider";
 import { cn } from "@/lib/utils";
 import { useEffect } from "react";
+import Image from "next/image";
 
 type SidebarProps = {
   open: boolean;
@@ -34,6 +37,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     { href: "/rewards", label: t("rewards"), icon: Gift },
     { href: "/me", label: t("profile"), icon: User },
     { href: "/announcements", label: t("announcements"), icon: Megaphone },
+    { href: "#", label: t("officialSite"), icon: Globe, external: true },
+    { href: "#", label: t("blockExplorer"), icon: Search, external: true },
   ];
 
   useEffect(() => {
@@ -94,16 +99,25 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             </div>
 
             <div className="flex items-center justify-between relative z-10">
-              <motion.div
-                className="flex items-center gap-3"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1 }}
-              >
-                <span className="text-lg font-bold bg-linear-to-r from-primary to-orange-500 bg-clip-text text-transparent">
-                  {t("appName")}
-                </span>
-              </motion.div>
+              <Link href="/" onClick={onClose}>
+                <motion.div
+                  className="flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.1 }}
+                >
+                  <Image
+                    src="/BelachainLogo.jpg"
+                    alt="Belachain Logo"
+                    width={32}
+                    height={32}
+                    className="rounded-lg"
+                  />
+                  <span className="text-lg font-bold bg-linear-to-r from-primary to-orange-500 bg-clip-text text-transparent translate-y-[1px]">
+                    {t("appName")}
+                  </span>
+                </motion.div>
+              </Link>
               <Button
                 variant="ghost"
                 size="icon"
@@ -116,15 +130,20 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
             <nav className="mt-4 flex flex-col gap-2 relative z-10">
               {items.map((item, index) => {
-                const isActive = pathname === item.href;
+                const isActive = !item.external && pathname === item.href;
                 return (
                   <motion.div
-                    key={item.href}
+                    key={item.href + item.label}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.1 + index * 0.05 }}
                   >
-                    <Link href={item.href} onClick={onClose}>
+                    <Link 
+                      href={item.href} 
+                      onClick={onClose}
+                      target={item.external ? "_blank" : undefined}
+                      rel={item.external ? "noopener noreferrer" : undefined}
+                    >
                       <motion.div
                         className={cn(
                           "relative flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group overflow-hidden",
@@ -175,17 +194,6 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                 );
               })}
             </nav>
-
-            <div className="bg-card/30 backdrop-blur-md rounded-2xl p-4 border border-primary/20 mb-6 mt-6">
-              <div className="grid gap-2">
-                <Link href="#" target="_blank" className="underline text-sm">
-                  {t("officialSite")}
-                </Link>
-                <Link href="#" className="underline text-sm">
-                  {t("blockExplorer")}
-                </Link>
-              </div>
-            </div>
 
             <motion.div
               initial={{ opacity: 0, y: 20 }}
