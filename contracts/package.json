@@ -1,0 +1,28 @@
+{
+  "name": "@belachain/contracts",
+  "version": "1.0.0",
+  "description": "BelaChain DApp Smart Contracts",
+  "author": "BelaChain Team",
+  "license": "MIT",
+  "scripts": {
+    "build": "forge build",
+    "test": "forge test -vv",
+    "test:coverage": "forge coverage",
+    "test:gas": "forge test --gas-report",
+    "deploy:local": "forge script script/Deploy.s.sol --rpc-url http://localhost:8545 --broadcast",
+    "deploy:testnet": "forge script script/Deploy.s.sol --rpc-url $ARBITRUM_SEPOLIA_RPC_URL --broadcast --verify",
+    "deploy:mainnet": "forge script script/Deploy.s.sol --rpc-url $ARBITRUM_RPC_URL --broadcast --verify",
+    "export-abi": "./export-abi.sh",
+    "format": "forge fmt",
+    "clean": "forge clean",
+    "install": "forge install"
+  },
+  "keywords": [
+    "solidity",
+    "ethereum",
+    "arbitrum",
+    "smart-contracts",
+    "dapp",
+    "foundry"
+  ]
+}
