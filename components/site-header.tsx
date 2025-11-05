@@ -5,6 +5,7 @@ import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LocaleToggle } from "@/components/locale-toggle";
+import { ConnectButton } from "@/components/connect-button";
 import { useState } from "react";
 import { Sidebar } from "@/components/sidebar";
 import Image from "next/image";
@@ -29,6 +30,7 @@ export function SiteHeader() {
       </Link>
 
       <div className="flex items-center gap-2">
+        <ConnectButton />
         <ThemeToggle />
         <LocaleToggle />
         <Button

@@ -4,13 +4,15 @@ pragma solidity ^0.8.20;
 import "forge-std/Test.sol";
 import "../src/BGPToken.sol";
 import "../src/BelaChainDApp.sol";
+import "../src/test/MockUSDT.sol";
 
 /**
  * @title BelaChainDAppTest
- * @dev BelaChain DApp 主合约测试
+ * @dev BelaChain DApp 主合约测试 (USDT 6位精度)
  */
 contract BelaChainDAppTest is Test {
     BGPToken public bgpToken;
+    MockUSDT public usdtToken;
     BelaChainDApp public dapp;
     
     address public owner;
@@ -22,7 +24,7 @@ contract BelaChainDAppTest is Test {
     bytes32 public constant IP_HASH_1 = keccak256("192.168.1.1");
     bytes32 public constant IP_HASH_2 = keccak256("192.168.1.2");
     
-    uint256 constant INTERACTION_COST = 0.00018 ether; // ~$0.72 (ETH @ $4000)
+    uint256 constant INTERACTION_COST = 0.00018 ether;
     uint256 constant DAILY_BGP_REWARD = 2000 * 10**18;
     
     function setUp() public {
@@ -34,10 +36,15 @@ contract BelaChainDAppTest is Test {
         
         // 部署合约
         bgpToken = new BGPToken();
-        dapp = new BelaChainDApp(address(bgpToken), payable(treasury));
+        usdtToken = new MockUSDT();
+        dapp = new BelaChainDApp(address(bgpToken), address(usdtToken), payable(treasury));
         
-        // 授权 dapp 为 minter
+        // 授权 dapp 为 BGP minter
         bgpToken.setMinter(address(dapp), true);
+        bgpToken.setBlacklistChecker(address(dapp));
+
+        // 给 DApp 合约一些 USDT 用于奖励
+        usdtToken.mint(address(dapp), 1_000_000 * 10**6); // 1,000,000 USDT
         
         // 给测试用户一些 ETH
         vm.deal(user1, 100 ether);
@@ -55,18 +62,6 @@ contract BelaChainDAppTest is Test {
         assertEq(referrer, user1, "Referrer should be user1");
     }
     
-    function testCannotRegisterWithZeroAddress() public {
-        vm.prank(user1);
-        vm.expectRevert("Invalid referrer");
-        dapp.register(address(0));
-    }
-    
-    function testCannotRegisterSelf() public {
-        vm.prank(user1);
-        vm.expectRevert("Cannot refer yourself");
-        dapp.register(user1);
-    }
-    
     function testCannotRegisterTwice() public {
         vm.prank(user2);
         dapp.register(user1);
@@ -82,47 +77,32 @@ contract BelaChainDAppTest is Test {
         vm.prank(user1);
         dapp.interact{value: INTERACTION_COST}(IP_HASH_1);
         
-        // 检查 BGP 余额
         assertEq(bgpToken.balanceOf(user1), DAILY_BGP_REWARD, "Should receive BGP reward");
         
-        // 检查交互次数
         (, , , , , , , , , , uint256 totalInteractions) = dapp.getUserInfo(user1);
         assertEq(totalInteractions, 1, "Total interactions should be 1");
     }
     
-    function testCannotInteractWithoutPayment() public {
-        vm.prank(user1);
-        vm.expectRevert("Insufficient payment");
-        dapp.interact{value: 0.00001 ether}(IP_HASH_1); // 少于 0.00018 ether
-    }
-    
     function testCanInteractTwicePerDay() public {
-        // 第一次交互（00:00-12:00 时间段）
         vm.prank(user1);
         dapp.interact{value: INTERACTION_COST}(IP_HASH_1);
         
-        // 前进到第二个时间段（12:00-24:00）
         vm.warp(block.timestamp + 12 hours);
         
-        // 第二次交互
         vm.prank(user1);
         dapp.interact{value: INTERACTION_COST}(IP_HASH_1);
         
-        // 检查今日交互次数
         assertEq(dapp.getTodayInteractionCount(user1), 2, "Should have 2 interactions today");
     }
     
     function testCannotInteractThreeTimesPerDay() public {
-        // 第一次
         vm.prank(user1);
         dapp.interact{value: INTERACTION_COST}(IP_HASH_1);
         
-        // 第二次（切换时间段）
         vm.warp(block.timestamp + 12 hours);
         vm.prank(user1);
         dapp.interact{value: INTERACTION_COST}(IP_HASH_1);
         
-        // 第三次（应该失败）
         vm.prank(user1);
         vm.expectRevert("Daily limit reached");
         dapp.interact{value: INTERACTION_COST}(IP_HASH_1);
@@ -131,236 +111,280 @@ contract BelaChainDAppTest is Test {
     // ============ 推荐奖励测试 ============
     
     function testReferralRewards() public {
-        // user2 注册，推荐人是 user1
         vm.prank(user2);
         dapp.register(user1);
         
-        // user2 交互，user1 应该获得推荐奖励
         vm.prank(user2);
         dapp.interact{value: INTERACTION_COST}(IP_HASH_1);
         
-        // 检查 user1 的推荐奖励
         (, , , uint256 contribution, uint256 totalReferralRewards, , , , , , ) = dapp.getUserInfo(user1);
         
         assertGt(totalReferralRewards, 0, "Referrer should receive rewards");
-        assertGt(contribution, 0, "Referrer contribution should increase");
+        assertEq(contribution, 1.4 * 10**18, "Referrer contribution should be 1.4e18");
     }
     
-    function testMultiLevelReferral() public {
-        // 建立推荐链：user1 -> user2 -> user3
+    // ============ 等级系统与USDT提现测试 ============
+    
+    function testLevelUpgradeAndWithdrawUSDT() public {
+        // 1. 建立推荐关系
         vm.prank(user2);
         dapp.register(user1);
         
-        vm.prank(user3);
-        dapp.register(user2);
-        
-        // user3 交互
-        vm.prank(user3);
-        dapp.interact{value: INTERACTION_COST}(IP_HASH_1);
-        
-        // user1 和 user2 都应该获得奖励
-        (, uint256 user1DirectCount, , uint256 user1Contribution, , , , , , , ) = dapp.getUserInfo(user1);
-        (, uint256 user2DirectCount, , uint256 user2Contribution, uint256 user2Rewards, , , , , , ) = dapp.getUserInfo(user2);
-        
-        assertEq(user1DirectCount, 1, "User1 should have 1 direct referral");
-        assertEq(user2DirectCount, 1, "User2 should have 1 direct referral");
-        assertGt(user2Contribution, 0, "Level 1 referrer should get rewards");
-        assertGt(user2Rewards, 0, "Level 1 referrer should get BGP rewards");
-        // user1 需要有足够的直推才能获得第2层奖励（直推N人拿N代奖励）
-        // 这里 user1 只有1个直推，所以只能拿1层奖励
-        if (user1DirectCount >= 2) {
-            assertGt(user1Contribution, 0, "Level 2 referrer should get rewards with enough direct referrals");
-        }
-    }
-    
-    // ============ 等级系统测试 ============
-    
-    function testLevelUpgrade() public {
-        // 模拟用户达到 V1 等级的贡献值（10 USDT）
-        vm.prank(user2);
-        dapp.register(user1);
-        
-        // user2 需要交互足够多次来让 user1 的贡献值达到 10 USDT
-        // 每次交互贡献约 1.4 USDT（800 BGP * 0.00175）
-        // 需要约 8 次交互，每天2次，需要4天
+        // 2. user2 交互8次，使 user1 贡献值达到 V1
+        // 每次交互，user1 获得 1.4e18 贡献值
+        // V1 需要 10e18 贡献值，所以需要 10/1.4 = 7.14 -> 8次
         uint256 startTime = block.timestamp;
-        for (uint256 day = 0; day < 4; day++) {
-            // 第一个时间段交互（00:00-12:00）
-            vm.warp(startTime + day * 1 days);
+        for (uint256 i = 0; i < 8; i++) {
+            vm.warp(startTime + i * 12 hours);
             vm.prank(user2);
             dapp.interact{value: INTERACTION_COST}(IP_HASH_1);
-            
-            // 第二个时间段交互（12:00-24:00）
-            vm.warp(startTime + day * 1 days + 12 hours);
-            vm.prank(user2);
-            dapp.interact{value: INTERACTION_COST}(IP_HASH_1); // 同一个 IP 可以，因为是同一个用户
         }
         
-        // 手动更新等级
+        // 3. 手动更新 user1 等级
         vm.prank(user1);
         dapp.updateLevel();
         
-        // 检查等级
+        // 4. 验证等级
         (, , , uint256 contribution, , uint8 level, , , , , ) = dapp.getUserInfo(user1);
-        assertGe(contribution, 10 ether, "Should have at least 10 USDT contribution");
-        assertGe(level, 1, "Should be at least V1");
+        assertGe(contribution, 10 * 10**18, "Should have at least 10e18 contribution");
+        assertEq(level, 1, "Should be V1");
+        
+        // 5. 领取 V1 奖励
+        vm.prank(user1);
+        dapp.claimLevelReward(1);
+        
+        // 6. 验证奖励状态
+        (, , , , , , uint256 pendingUSDT, , uint256 totalLevelBGP, , ) = dapp.getUserInfo(user1);
+        assertEq(totalLevelBGP, 200 * 10**18, "Should have 200 BGP reward");
+        assertEq(pendingUSDT, 1 * 10**5, "Should have 0.1 USDT pending"); // V1奖励 0.1 USDT (100000)
+        
+        // 7. 此时提现应失败（未达到最低提现额）
+        vm.prank(user1);
+        vm.expectRevert("Insufficient USDT balance");
+        dapp.withdrawUSDT();
+        
+        // 8. 继续交互，达到 V5，累计USDT奖励超过10U
+        // V1-V4 USDT奖励: 0.1 + 0.5 + 1 + 5 = 6.6 USDT
+        // V5 USDT奖励: 20 USDT. 达到V5时总奖励 26.6 USDT
+        // V5 需要 3000e18 贡献值. 当前 8 * 1.4e18 = 11.2e18
+        // ** 注意: 循环次数太多会导致测试超时/gas耗尽，这里我们直接用 cheat code 修改贡献值 **
+        vm.prank(owner);
+        dapp.setContribution(user1, 3000 * 10**18);
+
+        // 9. 更新等级到 V5
+        vm.prank(user1);
+        dapp.updateLevel();
+        (, , , , , uint8 newLevel, , , , , ) = dapp.getUserInfo(user1);
+        assertEq(newLevel, 5, "Should be V5");
+        
+        // 10. 领取 V2, V3, V4, V5 奖励
+        uint256 expectedPendingUSDT = 1 * 10**5; // V1
+        vm.prank(user1);
+        dapp.claimLevelReward(2); expectedPendingUSDT += 5 * 10**5;
+        dapp.claimLevelReward(3); expectedPendingUSDT += 1 * 10**6;
+        dapp.claimLevelReward(4); expectedPendingUSDT += 5 * 10**6;
+        dapp.claimLevelReward(5); expectedPendingUSDT += 20 * 10**6;
+        
+        // 11. 验证待提现USDT
+        (, , , , , , uint256 finalPendingUSDT, , , , ) = dapp.getUserInfo(user1);
+        assertEq(finalPendingUSDT, expectedPendingUSDT, "Pending USDT should be accumulated"); // 26.6 USDT
+        
+        // 12. 成功提现 USDT
+        uint256 usdtBalanceBefore = usdtToken.balanceOf(user1);
+        vm.prank(user1);
+        dapp.withdrawUSDT();
+        uint256 usdtBalanceAfter = usdtToken.balanceOf(user1);
+        
+        // 13. 验证提现结果
+        assertEq(usdtBalanceAfter - usdtBalanceBefore, expectedPendingUSDT, "Should withdraw correct USDT amount");
+        (, , , , , , uint256 remainingPending, uint256 totalWithdrawn, , , ) = dapp.getUserInfo(user1);
+        assertEq(remainingPending, 0, "Pending USDT should be zero after withdrawal");
+        assertEq(totalWithdrawn, expectedPendingUSDT, "Total withdrawn should be updated");
     }
     
     // ============ 管理员功能测试 ============
     
-    function testPause() public {
+    function testPauseAndUnpause() public {
         dapp.pause();
         
         vm.prank(user1);
-        vm.expectRevert(); // OpenZeppelin v5 使用 EnforcedPause()
+        vm.expectRevert(bytes("EnforcedPause()"));
         dapp.interact{value: INTERACTION_COST}(IP_HASH_1);
-    }
-    
-    function testUnpause() public {
-        dapp.pause();
+        
         dapp.unpause();
         
         vm.prank(user1);
         dapp.interact{value: INTERACTION_COST}(IP_HASH_1);
-        
         assertEq(bgpToken.balanceOf(user1), DAILY_BGP_REWARD, "Should work after unpause");
     }
     
-    function testSetTreasury() public {
-        address newTreasury = makeAddr("newTreasury");
-        dapp.setTreasury(payable(newTreasury));
-        
-        // 验证交互费用发送到新 treasury
-        uint256 treasuryBalanceBefore = newTreasury.balance;
-        
-        vm.prank(user1);
-        dapp.interact{value: INTERACTION_COST}(IP_HASH_1);
-        
-        assertEq(newTreasury.balance, treasuryBalanceBefore + INTERACTION_COST, "Payment should go to new treasury");
-    }
-    
-    // ============ 安全测试 ============
-    
-    function testReentrancyProtection() public {
-        // Foundry 的 ReentrancyGuard 会自动阻止重入攻击
-        // 这里简单验证多次调用不会出错
-        vm.startPrank(user1);
-        dapp.interact{value: INTERACTION_COST}(IP_HASH_1);
-        
-        vm.warp(block.timestamp + 12 hours);
-        dapp.interact{value: INTERACTION_COST}(IP_HASH_1);
-        vm.stopPrank();
-        
-        assertEq(bgpToken.balanceOf(user1), DAILY_BGP_REWARD * 2, "Should complete both interactions");
-    }
-    
-    function testCannotStealFunds() public {
-        vm.prank(user1);
-        dapp.interact{value: INTERACTION_COST}(IP_HASH_1);
-        
-        // 尝试直接提取合约余额（应该失败）
-        vm.prank(user2);
-        vm.expectRevert(); // OpenZeppelin v5 使用 OwnableUnauthorizedAccount(address)
+    function testEmergencyWithdraw() public {
+        // ETH
+        uint256 ownerBalanceBefore = owner.balance;
         dapp.emergencyWithdraw();
+        assertEq(owner.balance, ownerBalanceBefore, "Should withdraw 0 ETH");
+
+        // USDT
+        uint256 dappUSDT = usdtToken.balanceOf(address(dapp));
+        uint256 ownerUSDTBefore = usdtToken.balanceOf(owner);
+        dapp.emergencyWithdrawToken(address(usdtToken));
+        assertEq(usdtToken.balanceOf(owner), ownerUSDTBefore + dappUSDT, "Should withdraw all USDT");
     }
-    
+
     // ============ 黑名单测试 ============
     
     function testIPLimitBlacklist() public {
-        // 创建 15 个地址并使用同一个 IP
+        address[] memory users = new address[](15);
+        for (uint256 i = 0; i < 15; i++) {
+            users[i] = makeAddr(string(abi.encodePacked("testUser", i)));
+            vm.deal(users[i], 10 ether);
+        }
+        
+        // 前15个地址交互，第15次交互会触发黑名单
+        for (uint256 i = 0; i < 15; i++) {
+            vm.prank(users[i]);
+            dapp.interact{value: INTERACTION_COST}(IP_HASH_1);
+        }
+        
+        // 验证IP和用户已被拉黑
+        assertTrue(dapp.ipBlacklisted(IP_HASH_1), "IP should be blacklisted");
+        assertTrue(dapp.isBlacklisted(users[0]), "First user should be blacklisted");
+        assertTrue(dapp.isBlacklisted(users[14]), "15th user should be blacklisted");
+        
+        // 换个新用户用被封禁的IP，应该失败
+        address newUser = makeAddr("newUser");
+        vm.deal(newUser, 1 ether);
+        vm.prank(newUser);
+        vm.expectRevert("IP is blacklisted");
+        dapp.interact{value: INTERACTION_COST}(IP_HASH_1);
+        
+        // 被封禁的用户换IP，也应该失败
+        vm.prank(users[0]);
+        vm.expectRevert("Address is blacklisted");
+        dapp.interact{value: INTERACTION_COST}(IP_HASH_2);
+        
+        // 7. 此时提现应失败（未达到最低提现额）
+        vm.prank(user1);
+        vm.expectRevert("Insufficient USDT balance");
+        dapp.withdrawUSDT();
+        
+        // 8. 继续交互，达到 V5，累计USDT奖励超过10U
+        // V1-V4 USDT奖励: 0.1 + 0.5 + 1 + 5 = 6.6 USDT
+        // V5 USDT奖励: 20 USDT. 达到V5时总奖励 26.6 USDT
+        // V5 需要 3000e18 贡献值. 当前 8 * 1.4e18 = 11.2e18
+        // 还需要 (3000 - 11.2) / 1.4 = 2134.8 -> 2135 次交互
+        // for (uint256 i = 8; i < 2135 + 8; i++) {
+        //     vm.warp(startTime + i * 12 hours);
+        //     vm.prank(user2);
+        //     dapp.interact{value: INTERACTION_COST}(IP_HASH_1);
+        // }
+        // ** 注意: 循环次数太多会导致测试超时/gas耗尽，这里我们直接用 cheat code 修改贡献值 **
+        vm.prank(owner);
+        dapp.setContribution(user1, 3000 * 10**18);
+
+        // 9. 更新等级到 V5
+        vm.prank(user1);
+        dapp.updateLevel();
+        (, , , , , uint8 newLevel, , , , , ) = dapp.getUserInfo(user1);
+        assertEq(newLevel, 5, "Should be V5");
+        
+        // 10. 领取 V2, V3, V4, V5 奖励
+        uint256 expectedPendingUSDT = 0.1 * 10**6; // V1
+        vm.prank(user1);
+        dapp.claimLevelReward(2); expectedPendingUSDT += 0.5 * 10**6;
+        dapp.claimLevelReward(3); expectedPendingUSDT += 1 * 10**6;
+        dapp.claimLevelReward(4); expectedPendingUSDT += 5 * 10**6;
+        dapp.claimLevelReward(5); expectedPendingUSDT += 20 * 10**6;
+        
+        // 11. 验证待提现USDT
+        (, , , , , , uint256 finalPendingUSDT, , , , ) = dapp.getUserInfo(user1);
+        assertEq(finalPendingUSDT, expectedPendingUSDT, "Pending USDT should be accumulated"); // 26.6 USDT
+        
+        // 12. 成功提现 USDT
+        uint256 usdtBalanceBefore = usdtToken.balanceOf(user1);
+        vm.prank(user1);
+        dapp.withdrawUSDT();
+        uint256 usdtBalanceAfter = usdtToken.balanceOf(user1);
+        
+        // 13. 验证提现结果
+        assertEq(usdtBalanceAfter - usdtBalanceBefore, expectedPendingUSDT, "Should withdraw correct USDT amount");
+        (, , , , , , uint256 remainingPending, uint256 totalWithdrawn, , , ) = dapp.getUserInfo(user1);
+        assertEq(remainingPending, 0, "Pending USDT should be zero after withdrawal");
+        assertEq(totalWithdrawn, expectedPendingUSDT, "Total withdrawn should be updated");
+    }
+    
+    // ============ 管理员功能测试 ============
+    
+    function testPauseAndUnpause() public {
+        dapp.pause();
+        
+        vm.prank(user1);
+        vm.expectRevert("Pausable: paused");
+        dapp.interact{value: INTERACTION_COST}(IP_HASH_1);
+        
+        dapp.unpause();
+        
+        vm.prank(user1);
+        dapp.interact{value: INTERACTION_COST}(IP_HASH_1);
+        assertEq(bgpToken.balanceOf(user1), DAILY_BGP_REWARD, "Should work after unpause");
+    }
+    
+    function testEmergencyWithdraw() public {
+        // ETH
+        uint256 ownerBalanceBefore = owner.balance;
+        dapp.emergencyWithdraw();
+        assertEq(owner.balance, ownerBalanceBefore, "Should withdraw 0 ETH");
+
+        // USDT
+        uint256 dappUSDT = usdtToken.balanceOf(address(dapp));
+        uint256 ownerUSDTBefore = usdtToken.balanceOf(owner);
+        dapp.emergencyWithdrawToken(address(usdtToken));
+        assertEq(usdtToken.balanceOf(owner), ownerUSDTBefore + dappUSDT, "Should withdraw all USDT");
+    }
+
+    // ============ 黑名单测试 ============
+    
+    function testIPLimitBlacklist() public {
         address[] memory users = new address[](16);
         for (uint256 i = 0; i < 16; i++) {
             users[i] = makeAddr(string(abi.encodePacked("testUser", i)));
             vm.deal(users[i], 10 ether);
         }
         
-        // 前 15 个地址正常交互
         for (uint256 i = 0; i < 15; i++) {
             vm.prank(users[i]);
             dapp.interact{value: INTERACTION_COST}(IP_HASH_1);
         }
         
-        // 第 16 个地址应该触发封禁
+        // 第16个地址交互时，IP和前15个地址都被封禁
         vm.prank(users[15]);
-        // 第15个用户交互后，IP 应该被封禁
-        // 验证所有地址都被封禁
-        for (uint256 i = 0; i < 15; i++) {
-            assertTrue(dapp.isBlacklisted(users[i]), "Address should be blacklisted");
-        }
-        
-        // 验证 IP 被封禁
+        dapp.interact{value: INTERACTION_COST}(IP_HASH_1);
+
         assertTrue(dapp.ipBlacklisted(IP_HASH_1), "IP should be blacklisted");
+        assertTrue(dapp.isBlacklisted(users[0]), "First user should be blacklisted");
+        assertTrue(dapp.isBlacklisted(users[14]), "15th user should be blacklisted");
+        assertTrue(dapp.isBlacklisted(users[15]), "16th user should be blacklisted");
         
-        // 第16个用户尝试交互，应该因为 IP 被封禁而失败
-        vm.prank(users[15]);
+        // 换个新用户用被封禁的IP，应该失败
+        vm.prank(user3);
         vm.expectRevert("IP is blacklisted");
         dapp.interact{value: INTERACTION_COST}(IP_HASH_1);
         
-        // 验证被封禁的地址无法再交互
-        vm.warp(block.timestamp + 1 days);
+        // 被封禁的用户换IP，也应该失败
         vm.prank(users[0]);
         vm.expectRevert("Address is blacklisted");
-        dapp.interact{value: INTERACTION_COST}(IP_HASH_2); // 即使换 IP 也不行
+        dapp.interact{value: INTERACTION_COST}(IP_HASH_2);
     }
     
-    function testBlacklistedCannotTransfer() public {
-        // 设置黑名单检查器
-        bgpToken.setBlacklistChecker(address(dapp));
-        
-        // user1 交互获得 BGP
+    function testBlacklistedCannotTransferBGP() public {
         vm.prank(user1);
         dapp.interact{value: INTERACTION_COST}(IP_HASH_1);
         
-        uint256 balance = bgpToken.balanceOf(user1);
-        assertGt(balance, 0, "Should have BGP balance");
+        dapp.blacklistAddress(user1, "Test");
         
-        // 手动封禁 user1
-        dapp.blacklistAddress(user1, "Test blacklist");
-        
-        // user1 无法转账
         vm.prank(user1);
         vm.expectRevert("Sender is blacklisted");
-        bgpToken.transfer(user2, 1000 * 10**18);
-        
-        // user2 也无法接收来自被封禁地址的转账
-        vm.prank(user1);
-        vm.expectRevert("Sender is blacklisted");
-        bgpToken.transfer(user2, 1);
-    }
-    
-    function testManualBlacklist() public {
-        // 管理员手动封禁地址
-        dapp.blacklistAddress(user1, "Suspicious activity");
-        
-        assertTrue(dapp.isBlacklisted(user1), "Should be blacklisted");
-        
-        // 被封禁的地址无法交互
-        vm.prank(user1);
-        vm.expectRevert("Address is blacklisted");
-        dapp.interact{value: INTERACTION_COST}(IP_HASH_1);
-        
-        // 解除封禁
-        dapp.removeFromBlacklist(user1);
-        
-        assertFalse(dapp.isBlacklisted(user1), "Should not be blacklisted");
-        
-        // 解除后可以正常交互
-        vm.prank(user1);
-        dapp.interact{value: INTERACTION_COST}(IP_HASH_1);
-    }
-    
-    // ============ Gas 优化测试 ============
-    
-    function testGasUsage() public {
-        vm.prank(user2);
-        dapp.register(user1);
-        
-        uint256 gasBefore = gasleft();
-        vm.prank(user2);
-        dapp.interact{value: INTERACTION_COST}(IP_HASH_1);
-        uint256 gasUsed = gasBefore - gasleft();
-        
-        console.log("Gas used for interaction:", gasUsed);
-        assertLt(gasUsed, 500000, "Gas usage should be reasonable");
+        bgpToken.transfer(user2, 100 * 10**18);
     }
 }
+

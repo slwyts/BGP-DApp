@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./BGPToken.sol";
 
 /**
@@ -15,12 +16,13 @@ abstract contract LevelModule is Ownable {
     // 需要主合约提供这些函数
     function _getBGPToken() internal view virtual returns (BGPToken);
     function _getTreasury() internal view virtual returns (address payable);
-    
+    function _getUSDT() internal view virtual returns (IERC20);
+
     // 等级配置
     struct Level {
-        uint256 requiredContribution;
-        uint256 usdtReward;
-        uint256 bgpReward;
+        uint256 requiredContribution; // 18位精度
+        uint256 usdtReward;           // 6位精度
+        uint256 bgpReward;            // 18位精度
     }
     
     Level[12] public levels;
@@ -28,12 +30,12 @@ abstract contract LevelModule is Ownable {
     // 用户等级数据
     mapping(address => uint8) public userLevel; // 当前等级
     mapping(address => mapping(uint8 => bool)) public levelClaimed; // 是否领取过该等级奖励
-    mapping(address => uint256) public pendingUSDT; // 待提现 USDT
-    mapping(address => uint256) public totalUSDTWithdrawn; // 已提现 USDT
-    mapping(address => uint256) public totalLevelBGP; // 等级奖励总 BGP
+    mapping(address => uint256) public pendingUSDT; // 待提现 USDT (6位精度)
+    mapping(address => uint256) public totalUSDTWithdrawn; // 已提现 USDT (6位精度)
+    mapping(address => uint256) public totalLevelBGP; // 等级奖励总 BGP (18位精度)
     
     // 配置
-    uint256 public constant MIN_WITHDRAW_USDT = 10 ether; // 最低提现 10 USDT
+    uint256 public constant MIN_WITHDRAW_USDT = 10 * 10**6; // 最低提现 10 USDT (6位精度)
     
     event LevelRewardClaimed(
         address indexed user,
@@ -46,24 +48,25 @@ abstract contract LevelModule is Ownable {
     
     constructor() {
         // 初始化等级配置
-        levels[0] = Level(10, 0.1 ether, 200 * 10**18);          // V1
-        levels[1] = Level(50, 0.5 ether, 200 * 10**18);          // V2
-        levels[2] = Level(100, 1 ether, 200 * 10**18);           // V3
-        levels[3] = Level(500, 5 ether, 2000 * 10**18);          // V4
-        levels[4] = Level(3000, 20 ether, 8000 * 10**18);        // V5
-        levels[5] = Level(10000, 100 ether, 10000 * 10**18);     // V6
-        levels[6] = Level(30000, 200 ether, 30000 * 10**18);     // V7
-        levels[7] = Level(50000, 300 ether, 50000 * 10**18);     // V8
-        levels[8] = Level(100000, 500 ether, 100000 * 10**18);   // V9
-        levels[9] = Level(300000, 1000 ether, 300000 * 10**18);  // V10
-        levels[10] = Level(500000, 2000 ether, 500000 * 10**18); // V11
-        levels[11] = Level(1000000, 10000 ether, 1000000 * 10**18); // V12
+        // 贡献值 (18位), USDT奖励 (6位), BGP奖励 (18位)
+        levels[0] = Level(10 * 10**18, 1 * 10**5, 200 * 10**18);           // V1: 10U, 0.1U, 200 BGP
+        levels[1] = Level(50 * 10**18, 5 * 10**5, 200 * 10**18);           // V2: 50U, 0.5U, 200 BGP
+        levels[2] = Level(100 * 10**18, 1 * 10**6, 200 * 10**18);          // V3: 100U, 1U, 200 BGP
+        levels[3] = Level(500 * 10**18, 5 * 10**6, 2000 * 10**18);         // V4: 500U, 5U, 2000 BGP
+        levels[4] = Level(3000 * 10**18, 20 * 10**6, 8000 * 10**18);       // V5: 3kU, 20U, 8k BGP
+        levels[5] = Level(10000 * 10**18, 100 * 10**6, 10000 * 10**18);    // V6: 10kU, 100U, 10k BGP
+        levels[6] = Level(30000 * 10**18, 200 * 10**6, 30000 * 10**18);    // V7: 30kU, 200U, 30k BGP
+        levels[7] = Level(50000 * 10**18, 300 * 10**6, 50000 * 10**18);    // V8: 50kU, 300U, 50k BGP
+        levels[8] = Level(100000 * 10**18, 500 * 10**6, 100000 * 10**18);  // V9: 100kU, 500U, 100k BGP
+        levels[9] = Level(300000 * 10**18, 1000 * 10**6, 300000 * 10**18); // V10: 300kU, 1kU, 300k BGP
+        levels[10] = Level(500000 * 10**18, 2000 * 10**6, 500000 * 10**18);// V11: 500kU, 2kU, 500k BGP
+        levels[11] = Level(1000000 * 10**18, 10000 * 10**6, 1000000 * 10**18); // V12: 1M U, 10kU, 1M BGP
     }
     
     /**
      * @dev 检查并更新用户等级
      * @param user 用户地址
-     * @param userContribution 用户当前贡献值
+     * @param userContribution 用户当前贡献值 (18位精度)
      */
     function _updateUserLevel(address user, uint256 userContribution) internal {
         uint8 oldLevel = userLevel[user];
@@ -123,15 +126,16 @@ abstract contract LevelModule is Ownable {
     function withdrawUSDT() external {
         uint256 amount = pendingUSDT[msg.sender];
         require(amount >= MIN_WITHDRAW_USDT, "Insufficient USDT balance");
-        require(address(this).balance >= amount, "Insufficient contract balance");
+        
+        IERC20 usdt = _getUSDT();
+        require(usdt.balanceOf(address(this)) >= amount, "Insufficient contract balance");
         
         // 清零待提现金额
         pendingUSDT[msg.sender] = 0;
         totalUSDTWithdrawn[msg.sender] += amount;
         
         // 转账
-        (bool success, ) = payable(msg.sender).call{value: amount}("");
-        require(success, "Transfer failed");
+        require(usdt.transfer(msg.sender, amount), "USDT transfer failed");
         
         emit USDTWithdrawn(msg.sender, amount);
     }

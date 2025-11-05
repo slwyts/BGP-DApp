@@ -17,8 +17,8 @@ abstract contract ReferralModule is Ownable {
     
     // 推荐奖励配置
     struct ReferralReward {
-        uint256 bgpAmount;
-        uint256 contributionValue;
+        uint256 bgpAmount;         // 18位精度
+        uint256 contributionValue; // 6位精度
     }
     
     // L1-L15 的奖励配置
@@ -27,10 +27,10 @@ abstract contract ReferralModule is Ownable {
     // 推荐关系
     mapping(address => address) public referrer; // 用户 -> 推荐人
     mapping(address => address[]) public directReferrals; // 直推列表
-    mapping(address => uint256) public contribution; // 贡献值
+    mapping(address => uint256) public contribution; // 贡献值 (18位精度, 对应USDT价值)
     
     // 统计数据
-    mapping(address => uint256) public totalReferralRewards; // 总推荐奖励
+    mapping(address => uint256) public totalReferralRewards; // 总推荐奖励 (BGP, 18位精度)
     mapping(address => uint256) public teamSize; // 团队总人数（包括所有代）
     
     event Registered(address indexed user, address indexed referrer);
@@ -49,12 +49,13 @@ abstract contract ReferralModule is Ownable {
         // 400 BGP = 0.7 USDT  
         // 200 BGP = 0.35 USDT
         // 100 BGP = 0.175 USDT
-        levelRewards[1] = ReferralReward(800 * 10**18, 1.4 ether);
-        levelRewards[2] = ReferralReward(400 * 10**18, 0.7 ether);
-        levelRewards[3] = ReferralReward(200 * 10**18, 0.35 ether);
+        // BGP奖励 (18位), 贡献值 (18位, 模拟USDT价值)
+        levelRewards[1] = ReferralReward(800 * 10**18, 14 * 10**17); // 1.4 USDT
+        levelRewards[2] = ReferralReward(400 * 10**18, 7 * 10**17);  // 0.7 USDT
+        levelRewards[3] = ReferralReward(200 * 10**18, 35 * 10**16); // 0.35 USDT
         // L4-L15 都是 100 BGP, 0.175 USDT 贡献值
         for (uint8 i = 4; i <= 15; i++) {
-            levelRewards[i] = ReferralReward(100 * 10**18, 0.175 ether);
+            levelRewards[i] = ReferralReward(100 * 10**18, 175 * 10**15); // 0.175 USDT
         }
     }
     
@@ -116,6 +117,13 @@ abstract contract ReferralModule is Ownable {
             // 向上查找下一级推荐人
             current = referrer[current];
         }
+    }
+    
+    /**
+     * @dev [仅限Owner] 设置用户的贡献值（主要用于测试或数据迁移）
+     */
+    function setContribution(address user, uint256 value) external onlyOwner {
+        contribution[user] = value;
     }
     
     /**

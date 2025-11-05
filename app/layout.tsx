@@ -4,6 +4,7 @@ import "./globals.css";
 
 import { ThemeProvider } from "@/components/theme-provider";
 import { LocaleProvider } from "@/components/locale-provider";
+import { Web3Provider } from "@/components/web3-provider";
 
 import { Geist, Geist_Mono, Source_Serif_4 } from "next/font/google";
 
@@ -48,14 +49,16 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`font-sans antialiased`} suppressHydrationWarning>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          enableSystem={false}
-          disableTransitionOnChange
-        >
-          <LocaleProvider>{children}</LocaleProvider>
-        </ThemeProvider>
+        <Web3Provider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="dark"
+            enableSystem={false}
+            disableTransitionOnChange
+          >
+            <LocaleProvider>{children}</LocaleProvider>
+          </ThemeProvider>
+        </Web3Provider>
       </body>
     </html>
   );

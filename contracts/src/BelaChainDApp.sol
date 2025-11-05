@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import "./BGPToken.sol";
@@ -27,10 +28,11 @@ contract BelaChainDApp is
 {
     // 共享变量（被所有模块使用）
     BGPToken public bgpToken;
+    IERC20 public usdtToken;
     address payable public treasury;
     
     // 版本信息
-    string public constant VERSION = "1.0.0";
+    string public constant VERSION = "1.0.1"; // 升级版本号
     
     // 是否启用自动等级检查（每次交互后检查等级）
     bool public autoLevelCheck = true;
@@ -41,16 +43,20 @@ contract BelaChainDApp is
     /**
      * @dev 构造函数
      * @param _bgpToken BGP 代币合约地址
+     * @param _usdtToken USDT 代币合约地址
      * @param _treasury 资金接收地址
      */
     constructor(
         address _bgpToken,
+        address _usdtToken,
         address payable _treasury
     ) Ownable(msg.sender) {
-        require(_bgpToken != address(0), "Invalid token address");
+        require(_bgpToken != address(0), "Invalid BGP token address");
+        require(_usdtToken != address(0), "Invalid USDT token address");
         require(_treasury != address(0), "Invalid treasury address");
         
         bgpToken = BGPToken(_bgpToken);
+        usdtToken = IERC20(_usdtToken);
         treasury = _treasury;
     }
     
@@ -66,6 +72,13 @@ contract BelaChainDApp is
      */
     function _getTreasury() internal view override(LevelModule, InteractionModule) returns (address payable) {
         return treasury;
+    }
+
+    /**
+     * @dev 实现虚函数：获取 USDT Token
+     */
+    function _getUSDT() internal view override(LevelModule) returns (IERC20) {
+        return usdtToken;
     }
     
     /**
@@ -165,6 +178,7 @@ contract BelaChainDApp is
             uint256 totalInteractionsCount,
             uint256 totalParticipantsCount,
             uint256 bgpTotalSupply,
+            uint256 usdtBalance,
             uint256 contractBalance
         )
     {
@@ -172,6 +186,7 @@ contract BelaChainDApp is
             totalInteractions,
             totalParticipants,
             bgpToken.totalSupply(),
+            usdtToken.balanceOf(address(this)),
             address(this).balance
         );
     }
@@ -209,13 +224,25 @@ contract BelaChainDApp is
     }
     
     /**
-     * @dev 紧急提取（仅在紧急情况下使用）
+     * @dev 紧急提取 ETH（仅在紧急情况下使用）
      */
     function emergencyWithdraw() external onlyOwner {
         uint256 balance = address(this).balance;
-        require(balance > 0, "No balance");
-        (bool success, ) = owner().call{value: balance}("");
-        require(success, "Withdraw failed");
+        if (balance > 0) {
+            (bool success, ) = owner().call{value: balance}("");
+            require(success, "ETH withdraw failed");
+        }
+    }
+
+    /**
+     * @dev 紧急提取 ERC20 Token（仅在紧急情况下使用）
+     */
+    function emergencyWithdrawToken(address tokenAddress) external onlyOwner {
+        IERC20 token = IERC20(tokenAddress);
+        uint256 balance = token.balanceOf(address(this));
+        if (balance > 0) {
+            require(token.transfer(owner(), balance), "Token withdraw failed");
+        }
     }
     
     /**
