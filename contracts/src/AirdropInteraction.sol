@@ -119,8 +119,8 @@ contract AirdropInteraction is Ownable, ReentrancyGuard, Pausable {
         (bool success, ) = treasury.call{value: msg.value}("");
         require(success, "Transfer failed");
         
-        // 发放 BGP 奖励
-        bgpToken.mint(msg.sender, DAILY_BGP_REWARD);
+        // 发放 BGP 奖励（使用 transfer 而不是 mint）
+        require(bgpToken.transfer(msg.sender, DAILY_BGP_REWARD), "BGP transfer failed");
         
         // 触发推荐奖励（如果设置了推荐合约）
         if (referralContract != address(0)) {

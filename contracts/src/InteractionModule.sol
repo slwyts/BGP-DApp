@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./BGPToken.sol";
+import "./AntiSybil.sol";
 
 /**
  * @title InteractionModule
@@ -10,17 +11,17 @@ import "./BGPToken.sol";
  * - 每天2次交互机会（00:00 和 12:00 UTC）
  * - 每次交互需支付 0.6 ETH
  * - 每次交互奖励 2000 BGP
- * - 反日蚀攻击：每个 IP 限制 15 个地址
+ * - 反日蚀攻击通过 AntiSybil 合约实现
  */
 abstract contract InteractionModule is Ownable {
     // 需要主合约提供这些函数
     function _getBGPToken() internal view virtual returns (BGPToken);
     function _getTreasury() internal view virtual returns (address payable);
+    function _getAntiSybil() internal view virtual returns (IAntiSybil);
     
     // 交互配置
     uint256 public constant INTERACTION_COST = 0.00018 ether; // ~$0.72 (ETH @ $4000)
     uint256 public constant DAILY_BGP_REWARD = 2000 * 10**18;
-    uint256 public constant MAX_ADDRESSES_PER_IP = 15;
     uint256 public constant SLOT_DURATION = 12 hours;
     
     // 用户交互数据
@@ -33,16 +34,11 @@ abstract contract InteractionModule is Ownable {
     }
     
     mapping(address => DailyInteraction) public userInteractions;
-    mapping(bytes32 => address[]) public ipAddresses; // IP hash -> 地址列表
     
     // 全局统计
     uint256 public totalInteractions;
     uint256 public totalParticipants;
     mapping(address => bool) public hasInteracted;
-    
-    // 黑名单系统
-    mapping(address => bool) public isBlacklisted;
-    mapping(bytes32 => bool) public ipBlacklisted; // IP 是否被封禁
     
     event Interacted(
         address indexed user,
@@ -52,17 +48,20 @@ abstract contract InteractionModule is Ownable {
         uint256 timestamp
     );
     
-    event AddressBlacklisted(address indexed user, bytes32 indexed ipHash, string reason);
-    event IPBlacklisted(bytes32 indexed ipHash, uint256 addressCount);
-    
     /**
      * @dev 内部交互函数（被主合约调用）
      * @param user 交互用户
      * @param ipHash IP 地址哈希
      */
     function _interact(address user, bytes32 ipHash) internal {
-        // 验证 IP 限制
-        _checkIPLimit(user, ipHash);
+        // 通过 AntiSybil 合约检查黑名单并注册地址
+        IAntiSybil antiSybil = _getAntiSybil();
+        require(!antiSybil.isBlacklisted(user), "Address is blacklisted");
+        
+        // 如果是首次交互，在 AntiSybil 中注册
+        if (!hasInteracted[user]) {
+            antiSybil.registerAddress(user, ipHash);
+        }
         
         // 获取当前时段
         (uint256 currentDay, uint8 currentSlot) = _getCurrentSlot();
@@ -100,8 +99,11 @@ abstract contract InteractionModule is Ownable {
         
         totalInteractions++;
         
-        // 发放 BGP 奖励
-        _getBGPToken().mint(user, DAILY_BGP_REWARD);
+        // 发放 BGP 奖励（使用 transfer 而不是 mint）
+        require(
+            _getBGPToken().transfer(user, DAILY_BGP_REWARD),
+            "BGP transfer failed"
+        );
         
         emit Interacted(
             user,
@@ -110,80 +112,6 @@ abstract contract InteractionModule is Ownable {
             interaction.totalInteractions,
             block.timestamp
         );
-    }
-    
-    /**
-     * @dev 检查 IP 限制，超限则封禁所有地址
-     */
-    function _checkIPLimit(address user, bytes32 ipHash) internal {
-        // 检查用户是否已被封禁
-        require(!isBlacklisted[user], "Address is blacklisted");
-        
-        // 检查 IP 是否已被封禁
-        require(!ipBlacklisted[ipHash], "IP is blacklisted");
-        
-        address[] storage addresses = ipAddresses[ipHash];
-        
-        // 检查是否已存在
-        bool exists = false;
-        for (uint256 i = 0; i < addresses.length; i++) {
-            if (addresses[i] == user) {
-                exists = true;
-                break;
-            }
-        }
-        
-        // 如果不存在，添加新地址
-        if (!exists) {
-            // 如果已经达到限制，拒绝添加
-            if (addresses.length >= MAX_ADDRESSES_PER_IP) {
-                revert("IP limit exceeded - all addresses blacklisted");
-            }
-            addresses.push(user);
-            
-            // 如果添加后正好达到限制，立即封禁
-            if (addresses.length == MAX_ADDRESSES_PER_IP) {
-                _blacklistIP(ipHash);
-            }
-        }
-    }
-    
-    /**
-     * @dev 封禁 IP 及其所有关联地址
-     */
-    function _blacklistIP(bytes32 ipHash) internal {
-        address[] storage addresses = ipAddresses[ipHash];
-        
-        // 标记 IP 为封禁
-        ipBlacklisted[ipHash] = true;
-        
-        // 封禁所有关联地址
-        for (uint256 i = 0; i < addresses.length; i++) {
-            address addr = addresses[i];
-            if (!isBlacklisted[addr]) {
-                isBlacklisted[addr] = true;
-                emit AddressBlacklisted(addr, ipHash, "IP limit exceeded");
-            }
-        }
-        
-        emit IPBlacklisted(ipHash, addresses.length);
-    }
-    
-    /**
-     * @dev 手动封禁地址（仅 owner）
-     */
-    function blacklistAddress(address user, string calldata reason) external onlyOwner {
-        require(!isBlacklisted[user], "Already blacklisted");
-        isBlacklisted[user] = true;
-        emit AddressBlacklisted(user, bytes32(0), reason);
-    }
-    
-    /**
-     * @dev 解除封禁（仅 owner，用于误封的情况）
-     */
-    function removeFromBlacklist(address user) external onlyOwner {
-        require(isBlacklisted[user], "Not blacklisted");
-        isBlacklisted[user] = false;
     }
     
     /**
@@ -269,12 +197,5 @@ abstract contract InteractionModule is Ownable {
      */
     function getTotalInteractionCount(address user) external view returns (uint256) {
         return userInteractions[user].totalInteractions;
-    }
-    
-    /**
-     * @dev 获取 IP 地址关联的所有地址
-     */
-    function getIPAddresses(bytes32 ipHash) external view returns (address[] memory) {
-        return ipAddresses[ipHash];
     }
 }

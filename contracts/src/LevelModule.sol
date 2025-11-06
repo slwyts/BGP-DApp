@@ -105,8 +105,11 @@ abstract contract LevelModule is Ownable {
         // 标记已领取
         levelClaimed[msg.sender][level] = true;
         
-        // 发放 BGP 奖励
-        _getBGPToken().mint(msg.sender, levelData.bgpReward);
+        // 发放 BGP 奖励（使用 transfer 而不是 mint）
+        require(
+            _getBGPToken().transfer(msg.sender, levelData.bgpReward),
+            "BGP transfer failed"
+        );
         totalLevelBGP[msg.sender] += levelData.bgpReward;
         
         // 累积 USDT（不立即发放）

@@ -96,8 +96,11 @@ abstract contract ReferralModule is Ownable {
             if (directCount >= level) {
                 ReferralReward memory reward = levelRewards[level];
                 
-                // 发放 BGP 奖励
-                _getBGPToken().mint(current, reward.bgpAmount);
+                // 发放 BGP 奖励（使用 transfer 而不是 mint）
+                require(
+                    _getBGPToken().transfer(current, reward.bgpAmount),
+                    "BGP transfer failed"
+                );
                 
                 // 增加贡献值
                 contribution[current] += reward.contributionValue;

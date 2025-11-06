@@ -9,7 +9,7 @@ import "./AntiSybil.sol";
 contract BGPToken is ERC20, ERC20Burnable, Ownable {
     uint256 public constant MAX_SUPPLY = 10_000_000_000 * 10**18;
     IAntiSybil public immutable antiSybilContract;
-    
+
     constructor(
         address _antiSybilAddress
     ) 

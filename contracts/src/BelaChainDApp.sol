@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import "./BGPToken.sol";
+import "./AntiSybil.sol";
 import "./ReferralModule.sol";
 import "./LevelModule.sol";
 import "./InteractionModule.sol";
@@ -16,6 +17,7 @@ import "./InteractionModule.sol";
  * - 推荐奖励系统
  * - 等级奖励系统
  * - 每日交互系统
+ * - AntiSybil 防女巫攻击系统
  * 
  * 单一合约部署，便于管理和维护
  */
@@ -29,34 +31,40 @@ contract BelaChainDApp is
     // 共享变量（被所有模块使用）
     BGPToken public bgpToken;
     IERC20 public usdtToken;
+    IAntiSybil public antiSybilContract;
     address payable public treasury;
     
     // 版本信息
-    string public constant VERSION = "1.0.1"; // 升级版本号
+    string public constant VERSION = "2.0.0"; // 升级版本号 - 集成 AntiSybil
     
     // 是否启用自动等级检查（每次交互后检查等级）
     bool public autoLevelCheck = true;
     
     event TreasuryUpdated(address indexed oldTreasury, address indexed newTreasury);
     event AutoLevelCheckUpdated(bool enabled);
+    event AntiSybilContractUpdated(address indexed newAntiSybil);
     
     /**
      * @dev 构造函数
      * @param _bgpToken BGP 代币合约地址
      * @param _usdtToken USDT 代币合约地址
+     * @param _antiSybilContract AntiSybil 合约地址
      * @param _treasury 资金接收地址
      */
     constructor(
         address _bgpToken,
         address _usdtToken,
+        address _antiSybilContract,
         address payable _treasury
     ) Ownable(msg.sender) {
         require(_bgpToken != address(0), "Invalid BGP token address");
         require(_usdtToken != address(0), "Invalid USDT token address");
+        require(_antiSybilContract != address(0), "Invalid AntiSybil address");
         require(_treasury != address(0), "Invalid treasury address");
         
         bgpToken = BGPToken(_bgpToken);
         usdtToken = IERC20(_usdtToken);
+        antiSybilContract = IAntiSybil(_antiSybilContract);
         treasury = _treasury;
     }
     
@@ -79,6 +87,13 @@ contract BelaChainDApp is
      */
     function _getUSDT() internal view override(LevelModule) returns (IERC20) {
         return usdtToken;
+    }
+    
+    /**
+     * @dev 实现虚函数：获取 AntiSybil 合约
+     */
+    function _getAntiSybil() internal view override(InteractionModule) returns (IAntiSybil) {
+        return antiSybilContract;
     }
     
     /**
@@ -207,6 +222,15 @@ contract BelaChainDApp is
     function setAutoLevelCheck(bool enabled) external onlyOwner {
         autoLevelCheck = enabled;
         emit AutoLevelCheckUpdated(enabled);
+    }
+    
+    /**
+     * @dev 设置 AntiSybil 合约地址（紧急情况）
+     */
+    function setAntiSybilContract(address _newAntiSybil) external onlyOwner {
+        require(_newAntiSybil != address(0), "Invalid address");
+        antiSybilContract = IAntiSybil(_newAntiSybil);
+        emit AntiSybilContractUpdated(_newAntiSybil);
     }
     
     /**
