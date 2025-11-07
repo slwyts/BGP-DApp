@@ -7,22 +7,30 @@ import { Button } from "@/components/ui/button";
 import { useLocale } from "@/components/locale-provider";
 import { Check, Copy } from "lucide-react";
 import { GridPattern } from "@/components/ui/grid-pattern";
+import { useUserInfo } from "@/lib/hooks/use-contracts";
+import { useAccount } from "wagmi";
 
 export default function TeamPage() {
   const { t } = useLocale();
-  const [inviteCode] = useState(() =>
-    Math.random().toString(36).slice(2, 8).toUpperCase(),
+  const { address } = useAccount();
+  const { userInfo } = useUserInfo();
+  
+  // 生成邀请码(使用地址后6位)
+  const [inviteCode] = useState(() => 
+    address ? address.slice(-6).toUpperCase() : "000000"
   );
+  
   const inviteLink = useMemo(
     () =>
-      `${typeof window !== "undefined" ? window.location.origin : ""}/?ref=${inviteCode}`,
-    [inviteCode],
+      `${typeof window !== "undefined" ? window.location.origin : ""}/?ref=${address || "0x0"}`,
+    [address],
   );
   const [copied, setCopied] = useState(false);
 
-  const teamTotal = 128;
-  const direct = 24;
-  const teamContribution = 43210;
+  // 使用真实合约数据
+  const teamTotal = userInfo ? Number(userInfo.userTeamSize) : 0;
+  const direct = userInfo ? Number(userInfo.directReferralCount) : 0;
+  const teamContribution = userInfo ? Number(userInfo.userContribution) : 0;
 
   const levels = [
     { depth: 1, bgp: 800, contrib: 8 },

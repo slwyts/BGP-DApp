@@ -130,6 +130,7 @@ export const translations = {
     totalInteractionRewards: "Total Interaction Rewards",
     levelAchievementRewards: "Level Achievement U Rewards",
     cumulativeRewards: "Cumulative Rewards",
+    nextSlot: "Next slot:",
   },
   zh: {
     appName: "Belachain",
@@ -258,6 +259,7 @@ export const translations = {
     totalInteractionRewards: "总计交互收益",
     levelAchievementRewards: "等级达成U奖励",
     cumulativeRewards: "累计奖励",
+    nextSlot: "下一时段:",
   },
 };
 

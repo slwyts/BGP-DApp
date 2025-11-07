@@ -11,17 +11,14 @@ import { ClaimAnimationOverlay } from "@/components/claim-animation-overlay";
 import { DailyRewardAnimation } from "@/components/daily-reward-animation";
 import { StatsGrid } from "@/components/stats-grid";
 import { useEffect, useState, useRef, useMemo, useCallback } from "react";
-import { getAirdropStatus, claimAirdrop } from "@/lib/airdrop-client";
+import { useInteractionStatus, useInteract } from "@/lib/hooks/use-contracts";
+import { hashIP } from "@/lib/ip-hash";
+import { getContractAddresses } from "@/lib/contracts/addresses";
+import { useWalletClient } from "wagmi";
 
 export default function HomePage() {
   const { t } = useLocale();
   const [mounted, setMounted] = useState(false);
-  const [status, setStatus] = useState<"ready" | "pending" | "cooldown">(
-    "ready",
-  );
-  const [cooldown, setCooldown] = useState(0);
-  const [todayCount, setTodayCount] = useState(0);
-  // Removed unused claim animation state
   const [claimOverlay, setClaimOverlay] = useState<{
     open: boolean;
     usdt?: number;
@@ -30,8 +27,11 @@ export default function HomePage() {
   const [showDailyRewardAnim, setShowDailyRewardAnim] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [hydrated, setHydrated] = useState(false);
-  // In-site popup for "Add BGP to Wallet"
-  const [showAddBGPDialog, setShowAddBGPDialog] = useState(false);
+
+  // 使用真实合约数据
+  const { canInteract, nextSlotTime, todayCount, refetch: refetchStatus } = useInteractionStatus();
+  const { interact, isPending, isConfirming, isSuccess } = useInteract();
+  const { data: walletClient } = useWalletClient();
 
   useEffect(() => {
     const timer = setTimeout(() => setHydrated(true), 0);
@@ -45,7 +45,6 @@ export default function HomePage() {
   const headerY = useTransform(scrollYProgress, [0, 0.2], [0, -20]);
 
   const dailyLimit = 2;
-  const [serverNext, setServerNext] = useState<number | null>(null);
 
   const formatCooldown = (seconds: number) => {
     const h = Math.floor(seconds / 3600);
@@ -63,8 +62,6 @@ export default function HomePage() {
     } catch {}
   };
 
-  // Removed unused dayString helper
-
   const addRecord = (type: "BGP" | "USDT", amount: number) => {
     try {
       const key = "claimRecords";
@@ -74,100 +71,49 @@ export default function HomePage() {
     } catch {}
   };
 
-  // Removed unused addTokenToWallet helper
-
   useEffect(() => {
     const timer = setTimeout(() => setMounted(true), 0);
     return () => clearTimeout(timer);
   }, []);
 
-  // 客户端状态检查（替代服务器 API）
-  const fetchStatus = useCallback(() => {
-    try {
-      const addr =
-        (typeof window !== "undefined" &&
-          localStorage.getItem("walletAddress")) ||
-        "anon";
-      const data = getAirdropStatus(addr);
-      setTodayCount(data.claimsToday || 0);
-      setServerNext(data.next || null);
-      const now = Date.now();
-      const diff = data.next
-        ? Math.max(0, Math.ceil((data.next - now) / 1000))
-        : 0;
-      setCooldown(data.claimable ? 0 : diff);
-      setStatus(data.claimable ? "ready" : "cooldown");
-    } catch {
-      setStatus("ready");
+  // 计算倒计时
+  const [cooldown, setCooldown] = useState(0);
+  useEffect(() => {
+    if (!nextSlotTime || canInteract) {
+      setCooldown(0);
+      return;
     }
-  }, []);
-
-  useEffect(() => {
-    // Schedule to avoid synchronous setState in effect body
-    const id = setTimeout(() => {
-      void fetchStatus();
-    }, 0);
-    return () => clearTimeout(id);
-  }, [fetchStatus]);
-
-  useEffect(() => {
-    if (status !== "cooldown") return;
-    const id = setInterval(() => {
-      setCooldown((c) => {
-        const next = Math.max(0, c - 1);
-        if (next === 0) fetchStatus();
-        return next;
-      });
-    }, 1000);
+    
+    const updateCooldown = () => {
+      const now = Math.floor(Date.now() / 1000);
+      const diff = Math.max(0, nextSlotTime - now);
+      setCooldown(diff);
+    };
+    
+    updateCooldown();
+    const id = setInterval(updateCooldown, 1000);
     return () => clearInterval(id);
-  }, [status, fetchStatus]);
+  }, [nextSlotTime, canInteract]);
 
-  // Reset daily count on day change while page is open
+  // 交互成功后的处理
   useEffect(() => {
-    const id = setInterval(() => {
-      void fetchStatus();
-    }, 60000);
-    return () => clearInterval(id);
-  }, [fetchStatus]);
-
-  const onInteract = () => {
-    if (status !== "ready") return;
-    setStatus("pending");
-    try {
-      const addr =
-        (typeof window !== "undefined" &&
-          localStorage.getItem("walletAddress")) ||
-        "anon";
-      const data = claimAirdrop(addr);
-      if (!data.success) {
-        fetchStatus();
-        setStatus("cooldown");
-        return;
-      }
+    if (isSuccess) {
       setShowDailyRewardAnim(true);
       setTimeout(() => {
         setShowDailyRewardAnim(false);
-        onClaim({ usdt: data.payout?.usdt, bgp: data.payout?.bgp });
-        setTodayCount(data.claimsToday || 0);
-        if (data.next) {
-          const diff = Math.max(0, Math.ceil((data.next - Date.now()) / 1000));
-          setCooldown(diff);
-          setStatus("cooldown");
-        } else {
-          fetchStatus();
-        }
+        onClaim({ bgp: 2000 }); // DAILY_BGP_REWARD = 2000
+        refetchStatus();
       }, 1200);
-    } catch {
-      setStatus("ready");
     }
-  };
+  }, [isSuccess, refetchStatus]);
 
   const nextSlotLabel = useMemo(() => {
-    if (todayCount >= dailyLimit) return "00:00";
-    if (!serverNext) return "";
-    const h = new Date(serverNext).getHours();
+    if (!todayCount || todayCount >= dailyLimit) return "00:00";
+    if (!nextSlotTime) return "";
+    const date = new Date(nextSlotTime * 1000);
+    const h = date.getHours();
     return h === 12 ? "12:00" : "00:00";
-  }, [serverNext, todayCount]);
+  }, [nextSlotTime, todayCount]);
 
   const onClaim = (payout?: { usdt?: number; bgp?: number }) => {
     playSound();
@@ -176,7 +122,55 @@ export default function HomePage() {
     if (payout?.usdt) addRecord("USDT", payout.usdt);
   };
 
-  // Removed unused randomAddress helper
+  const onInteract = async () => {
+    if (!canInteract || isPending || isConfirming) return;
+    
+    try {
+      // 生成 IP hash
+      const ipHash = await hashIP();
+      await interact(ipHash);
+    } catch (error) {
+      console.error("Interaction failed:", error);
+    }
+  };
+
+  // 添加 BGP 代币到钱包
+  const handleAddBGPToWallet = async () => {
+    try {
+      if (!walletClient) {
+        console.error('Wallet not connected');
+        return;
+      }
+
+      const addresses = getContractAddresses();
+      
+      // 使用 wagmi 的 walletClient 调用 wallet_watchAsset
+      await walletClient.request({
+        method: 'wallet_watchAsset',
+        params: {
+          type: 'ERC20',
+          options: {
+            address: addresses.bgpToken,
+            symbol: 'BGP',
+            decimals: 18,
+            image: 'https://raw.githubusercontent.com/slwyts/BGP-DApp/main/public/BelachainLogo.jpg',
+          },
+        },
+      } as any);
+
+      console.log('BGP token add request sent');
+    } catch (error: any) {
+      // 用户取消不算错误
+      if (error?.code === 4001) {
+        console.log('User cancelled token addition');
+        return;
+      }
+      console.error('Failed to add BGP token:', error);
+    }
+  };
+
+  // 确定按钮状态
+  const status = isPending || isConfirming ? "pending" : canInteract ? "ready" : "cooldown";
 
   if (!mounted) {
     return null;
@@ -203,29 +197,6 @@ export default function HomePage() {
           open={showDailyRewardAnim}
           onClose={() => setShowDailyRewardAnim(false)}
         />
-
-        {/* Simple in-site dialog */}
-        {showAddBGPDialog && (
-          <div
-            className="fixed inset-0 z-2000 bg-black/60 flex items-center justify-center p-4"
-            onClick={() => setShowAddBGPDialog(false)}
-          >
-            <div
-              className="bg-background rounded-lg border p-6 w-full max-w-sm text-center shadow-lg"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h3 className="text-xl font-bold bg-linear-to-r from-primary via-orange-500 to-orange-600 bg-clip-text text-transparent">
-                {t("addBGPToWallet")}
-              </h3>
-              <p className="text-base text-foreground/90 pt-4">
-                {t("addBGPNotDeveloped")}
-              </p>
-              <div className="mt-6 flex justify-center">
-                <Button onClick={() => setShowAddBGPDialog(false)}>OK</Button>
-              </div>
-            </div>
-          </div>
-        )}
 
         <SiteHeader />
 
@@ -350,7 +321,7 @@ export default function HomePage() {
                         {t("cooldown")} · {formatCooldown(cooldown)}
                       </>
                     ) : (
-                      <>resets at {nextSlotLabel || "00:00"}</>
+                      <>{t("nextSlot")} {nextSlotLabel || "00:00"}</>
                     )}
                   </span>
                 )}
@@ -374,7 +345,7 @@ export default function HomePage() {
                         animate={{ scale: 1 }}
                         transition={{ delay: 0.6 + i * 0.1 }}
                         className={`w-3 h-3 rounded-full ${
-                          i < todayCount
+                          i < (todayCount || 0)
                             ? "bg-linear-to-r from-primary to-orange-500"
                             : "bg-muted"
                         }`}
@@ -382,7 +353,7 @@ export default function HomePage() {
                     ))}
                   </div>
                   <span className="text-sm font-bold text-primary ml-1">
-                    {todayCount}/{dailyLimit}
+                    {todayCount || 0}/{dailyLimit}
                   </span>
                 </div>
               </motion.div>
@@ -391,7 +362,7 @@ export default function HomePage() {
                 <Button
                   variant="outline"
                   className="w-full max-w-xs bg-transparent"
-                  onClick={() => setShowAddBGPDialog(true)}
+                  onClick={handleAddBGPToWallet}
                 >
                   <PlusCircle className="w-4 h-4 mr-2" /> {t("addBGPToWallet")}
                 </Button>

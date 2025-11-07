@@ -176,6 +176,8 @@ abstract contract InteractionModule is Ownable {
                 nextSlotTime = (currentDay + 1) * 1 days;
             }
         }
+        
+        return (canInteract, nextSlotTime, todayCount);
     }
     
     /**

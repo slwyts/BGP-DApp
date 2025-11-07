@@ -123,9 +123,9 @@ async function main() {
   console.log("  ✅ BelaChainDApp 所有权转移完成");
   console.log();
 
-  // 9. 生成 .env.localnet 文件
-  console.log("📄 生成 .env.localnet 文件...");
-  const envContent = `# Localnet 环境配置
+  // 9. 生成 .env.local 文件
+  console.log("📄 生成 .env.local 文件...");
+  const envContent = `# Local 环境配置
 # 由 scripts/deploy.ts 自动生成
 # 生成时间: ${new Date().toISOString()}
 
@@ -151,9 +151,9 @@ NEXT_PUBLIC_RPC_URL=http://127.0.0.1:8545
 # - Owner/Treasury: ${ownerAddress} (前端可通过 DApp.owner() 查询)
 `;
 
-  const envPath = path.join(__dirname, "..", ".env.localnet");
+  const envPath = path.join(__dirname, "..", ".env.local");
   fs.writeFileSync(envPath, envContent);
-  console.log("✅ .env.localnet 文件已生成\n");
+  console.log("✅ .env.local 文件已生成\n");
 
   // 9. 打印部署摘要
   console.log("=" .repeat(60));
@@ -168,7 +168,7 @@ NEXT_PUBLIC_RPC_URL=http://127.0.0.1:8545
   console.log("\n✅ 部署完成！");
   console.log("\n💡 提示:");
   console.log("   1. 运行 'npm run dev' 启动前端");
-  console.log("   2. 确保前端读取 .env.localnet 配置");
+  console.log("   2. .env.local 已自动配置本地网络");
   console.log("   3. DApp 合约已获得 50% BGP 和 300万 USDT\n");
 }
 

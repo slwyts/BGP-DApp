@@ -12,15 +12,20 @@ import {
   Calendar,
 } from "lucide-react";
 import { useLocale } from "@/components/locale-provider";
+import { useUserInfo, useGlobalStats } from "@/lib/hooks/use-contracts";
 
 export function StatsGrid() {
   const { t } = useLocale();
+  
+  // 使用真实合约数据
+  const { userInfo } = useUserInfo();
+  const { totalInteractions, totalParticipants } = useGlobalStats();
 
   const globalStats = [
     {
       icon: Users,
       label: t("totalParticipatingAddresses"),
-      value: "8,234",
+      value: totalParticipants.toLocaleString(),
       unit: "",
       gradient: "from-primary to-orange-500",
       bgGradient: "from-primary/10 to-orange-500/10",
@@ -28,18 +33,34 @@ export function StatsGrid() {
     {
       icon: Activity,
       label: t("totalInteractions"),
-      value: "45,123",
+      value: totalInteractions.toLocaleString(),
       unit: "",
       gradient: "from-orange-500 to-orange-600",
       bgGradient: "from-orange-500/10 to-orange-600/10",
     },
   ];
 
+  // 从合约数据计算个人统计
+  const totalInteractionCount = userInfo ? Number(userInfo.totalInteractionCount) : 0;
+  const totalReferralRewards = userInfo ? Number(userInfo.userTotalReferralRewards) : 0;
+  const totalLevelBGP = userInfo ? Number(userInfo.userTotalLevelBGP) : 0;
+  const totalUSDT = userInfo 
+    ? (Number(userInfo.userTotalUSDTWithdrawn) + Number(userInfo.userPendingUSDT)) / 1e6
+    : 0;
+  const currentLevel = userInfo ? Number(userInfo.currentLevel) : 0;
+  
+  // 计算活跃天数: 每天最多2次交互,总交互数/2 = 活跃天数(向上取整)
+  const activeDays = Math.ceil(totalInteractionCount / 2);
+  
+  // 计算总 BGP 奖励 = 交互奖励 + 推荐奖励 + 等级奖励
+  const interactionBGP = totalInteractionCount * 2000; // DAILY_BGP_REWARD
+  const totalBGP = interactionBGP + totalReferralRewards / 1e18 + totalLevelBGP / 1e18;
+
   const personalStats = [
     {
       icon: User,
       label: t("personalCumulativeInteractions"),
-      value: "127",
+      value: totalInteractionCount.toString(),
       unit: "",
       gradient: "from-primary to-orange-400",
       bgGradient: "from-primary/10 to-orange-400/10",
@@ -47,7 +68,7 @@ export function StatsGrid() {
     {
       icon: Calendar,
       label: t("activeDays"),
-      value: "23",
+      value: activeDays.toString(),
       unit: "",
       gradient: "from-orange-600 to-primary",
       bgGradient: "from-orange-600/10 to-primary/10",
@@ -55,7 +76,7 @@ export function StatsGrid() {
     {
       icon: DollarSign,
       label: t("totalInteractionRewards"),
-      value: "25,400",
+      value: interactionBGP.toLocaleString(),
       unit: "BGP",
       gradient: "from-primary to-orange-500",
       bgGradient: "from-primary/10 to-orange-500/10",
@@ -63,7 +84,7 @@ export function StatsGrid() {
     {
       icon: Award,
       label: t("levelAchievementRewards"),
-      value: "5.0",
+      value: totalUSDT.toFixed(1),
       unit: "USDT",
       gradient: "from-orange-500 to-orange-600",
       bgGradient: "from-orange-500/10 to-orange-600/10",
@@ -71,7 +92,7 @@ export function StatsGrid() {
     {
       icon: TrendingUp,
       label: t("level"),
-      value: "V3",
+      value: `V${currentLevel}`,
       unit: "",
       gradient: "from-primary to-orange-400",
       bgGradient: "from-primary/10 to-orange-400/10",
@@ -79,7 +100,7 @@ export function StatsGrid() {
     {
       icon: DollarSign,
       label: t("cumulativeRewards"),
-      value: "35,800",
+      value: Math.floor(totalBGP).toLocaleString(),
       unit: "BGP",
       gradient: "from-orange-600 to-primary",
       bgGradient: "from-orange-600/10 to-primary/10",

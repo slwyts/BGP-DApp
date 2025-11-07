@@ -3,23 +3,23 @@
 import { useReadContract, useWriteContract, useAccount, useWaitForTransactionReceipt } from 'wagmi'
 import { parseEther, formatEther, type Abi } from 'viem'
 import { getContractAddresses } from '../contracts/addresses'
-import BelaChainDAppABIData from '../contracts/BelaChainDApp.json'
-import BGPTokenABIData from '../contracts/BGPToken.json'
+import BelaChainDAppArtifact from '../../artifacts/contracts/BelaChainDApp.sol/BelaChainDApp.json'
+import BGPTokenArtifact from '../../artifacts/contracts/BGPToken.sol/BGPToken.json'
 import type { UserInfo } from '../contracts/types'
 
-const BelaChainDAppABI = BelaChainDAppABIData as unknown as Abi
-const BGPTokenABI = BGPTokenABIData as unknown as Abi
+const DAppABI = BelaChainDAppArtifact.abi as Abi
+const BGPTokenABI = BGPTokenArtifact.abi as Abi
 
 /**
  * 获取用户信息
  */
 export function useUserInfo() {
   const { address, chainId } = useAccount()
-  const addresses = chainId ? getContractAddresses(chainId) : null
+  const addresses = chainId ? getContractAddresses() : null
 
   const { data, isLoading, error, refetch } = useReadContract({
-    address: addresses?.belaChainDApp as `0x${string}`,
-    abi: BelaChainDAppABI,
+    address: addresses?.dapp as `0x${string}`,
+    abi: DAppABI,
     functionName: 'getUserInfo',
     args: [address],
     query: {
@@ -40,7 +40,7 @@ export function useUserInfo() {
  */
 export function useBGPBalance() {
   const { address, chainId } = useAccount()
-  const addresses = chainId ? getContractAddresses(chainId) : null
+  const addresses = chainId ? getContractAddresses() : null
 
   const { data, isLoading, refetch } = useReadContract({
     address: addresses?.bgpToken as `0x${string}`,
@@ -61,11 +61,11 @@ export function useBGPBalance() {
 }
 
 /**
- * 注册推荐人
+ * 注册推荐�?
  */
 export function useRegister() {
   const { chainId } = useAccount()
-  const addresses = chainId ? getContractAddresses(chainId) : null
+  const addresses = chainId ? getContractAddresses() : null
   const { writeContract, data: hash, isPending, error } = useWriteContract()
 
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
@@ -76,8 +76,8 @@ export function useRegister() {
     if (!addresses) return
     
     writeContract({
-      address: addresses.belaChainDApp as `0x${string}`,
-      abi: BelaChainDAppABI,
+      address: addresses.dapp as `0x${string}`,
+      abi: DAppABI,
       functionName: 'register',
       args: [referrer],
     })
@@ -98,7 +98,7 @@ export function useRegister() {
  */
 export function useInteract() {
   const { chainId } = useAccount()
-  const addresses = chainId ? getContractAddresses(chainId) : null
+  const addresses = chainId ? getContractAddresses() : null
   const { writeContract, data: hash, isPending, error } = useWriteContract()
 
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
@@ -109,11 +109,11 @@ export function useInteract() {
     if (!addresses) return
     
     writeContract({
-      address: addresses.belaChainDApp as `0x${string}`,
-      abi: BelaChainDAppABI,
+      address: addresses.dapp as `0x${string}`,
+      abi: DAppABI,
       functionName: 'interact',
       args: [ipHash],
-      value: parseEther('0.00018'), // ~$0.72 (ETH @ $4000)
+      value: parseEther('0.00015'), // 0.6 USDT (ETH @ $4000)
     })
   }
 
@@ -132,7 +132,7 @@ export function useInteract() {
  */
 export function useClaimLevelReward() {
   const { chainId } = useAccount()
-  const addresses = chainId ? getContractAddresses(chainId) : null
+  const addresses = chainId ? getContractAddresses() : null
   const { writeContract, data: hash, isPending, error } = useWriteContract()
 
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
@@ -143,8 +143,8 @@ export function useClaimLevelReward() {
     if (!addresses) return
     
     writeContract({
-      address: addresses.belaChainDApp as `0x${string}`,
-      abi: BelaChainDAppABI,
+      address: addresses.dapp as `0x${string}`,
+      abi: DAppABI,
       functionName: 'claimLevelReward',
       args: [level],
     })
@@ -165,7 +165,7 @@ export function useClaimLevelReward() {
  */
 export function useWithdrawUSDT() {
   const { chainId } = useAccount()
-  const addresses = chainId ? getContractAddresses(chainId) : null
+  const addresses = chainId ? getContractAddresses() : null
   const { writeContract, data: hash, isPending, error } = useWriteContract()
 
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
@@ -176,8 +176,8 @@ export function useWithdrawUSDT() {
     if (!addresses) return
     
     writeContract({
-      address: addresses.belaChainDApp as `0x${string}`,
-      abi: BelaChainDAppABI,
+      address: addresses.dapp as `0x${string}`,
+      abi: DAppABI,
       functionName: 'withdrawUSDT',
     })
   }
@@ -197,7 +197,7 @@ export function useWithdrawUSDT() {
  */
 export function useTransferBGP() {
   const { chainId } = useAccount()
-  const addresses = chainId ? getContractAddresses(chainId) : null
+  const addresses = chainId ? getContractAddresses() : null
   const { writeContract, data: hash, isPending, error } = useWriteContract()
 
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
@@ -230,11 +230,11 @@ export function useTransferBGP() {
  */
 export function useIsBlacklisted() {
   const { address, chainId } = useAccount()
-  const addresses = chainId ? getContractAddresses(chainId) : null
+  const addresses = chainId ? getContractAddresses() : null
 
   const { data, isLoading, refetch } = useReadContract({
-    address: addresses?.belaChainDApp as `0x${string}`,
-    abi: BelaChainDAppABI,
+    address: addresses?.dapp as `0x${string}`,
+    abi: DAppABI,
     functionName: 'isBlacklisted',
     args: [address],
     query: {
@@ -248,3 +248,91 @@ export function useIsBlacklisted() {
     refetch,
   }
 }
+
+/**
+ * 获取交互状态
+ */
+export function useInteractionStatus() {
+  const { address, chainId } = useAccount()
+  const addresses = chainId ? getContractAddresses() : null
+
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: addresses?.dapp as `0x${string}`,
+    abi: DAppABI,
+    functionName: 'checkInteractionStatus',
+    args: [address],
+    query: {
+      enabled: !!address && !!addresses,
+    },
+  })
+
+  const result = data as [boolean, bigint, number] | undefined
+
+  return {
+    canInteract: result?.[0],
+    nextSlotTime: result?.[1] ? Number(result[1]) : undefined,
+    todayCount: result?.[2],
+    isLoading,
+    error,
+    refetch,
+  }
+}
+
+/**
+ * 获取全局统计数据
+ */
+export function useGlobalStats() {
+  const { chainId } = useAccount()
+  const addresses = chainId ? getContractAddresses() : null
+
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: addresses?.dapp as `0x${string}`,
+    abi: DAppABI,
+    functionName: 'getGlobalStats',
+    query: {
+      enabled: !!addresses,
+    },
+  })
+
+  const result = data as [bigint, bigint, bigint, bigint, bigint] | undefined
+
+  return {
+    totalInteractions: result?.[0] ? Number(result[0]) : 0,
+    totalParticipants: result?.[1] ? Number(result[1]) : 0,
+    bgpTotalSupply: result?.[2] ? formatEther(result[2]) : '0',
+    usdtBalance: result?.[3] ? Number(result[3]) / 1e6 : 0, // USDT 6位精度
+    contractBalance: result?.[4] ? formatEther(result[4]) : '0',
+    isLoading,
+    error,
+    refetch,
+  }
+}
+
+/**
+ * 获取等级领取状态
+ */
+export function useLevelClaimStatus() {
+  const { address, chainId } = useAccount()
+  const addresses = chainId ? getContractAddresses() : null
+
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: addresses?.dapp as `0x${string}`,
+    abi: DAppABI,
+    functionName: 'getLevelClaimStatus',
+    args: [address],
+    query: {
+      enabled: !!address && !!addresses,
+    },
+  })
+
+  // 返回 bool[12] 数组
+  const claimedLevels = data as boolean[] | undefined
+
+  return {
+    claimedLevels: claimedLevels || Array(12).fill(false),
+    isLoading,
+    error,
+    refetch,
+  }
+}
+

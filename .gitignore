@@ -25,6 +25,3 @@ typechain-types
 coverage.json
 .openzeppelin
 deployments
-
-# Local test
-.env.localnet

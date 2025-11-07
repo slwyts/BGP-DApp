@@ -5,6 +5,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { LocaleProvider } from "@/components/locale-provider";
 import { Web3Provider } from "@/components/web3-provider";
+import { ReferralHandler } from "@/components/referral-handler";
 
 import { Geist, Geist_Mono, Source_Serif_4 } from "next/font/google";
 
@@ -56,7 +57,10 @@ export default function RootLayout({
             enableSystem={false}
             disableTransitionOnChange
           >
-            <LocaleProvider>{children}</LocaleProvider>
+            <LocaleProvider>
+              <ReferralHandler />
+              {children}
+            </LocaleProvider>
           </ThemeProvider>
         </Web3Provider>
       </body>

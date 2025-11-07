@@ -8,6 +8,8 @@ import { useLocale } from "@/components/locale-provider";
 import { Particles } from "@/components/ui/particles";
 import { useEffect, useState } from "react";
 import { ActivityFeed } from "@/components/activity-feed";
+import { useAccount, useDisconnect } from "wagmi";
+import { useUserInfo } from "@/lib/hooks/use-contracts";
 
 type ClaimRecord = {
   type: string;
@@ -28,8 +30,16 @@ function isClaimRecord(value: unknown): value is ClaimRecord {
 
 export default function MePage() {
   const { t } = useLocale();
-  const address = "0x1234...5678";
-  const network = "Arbitrum";
+  const { address, chain } = useAccount();
+  const { disconnect } = useDisconnect();
+  const { userInfo } = useUserInfo();
+  
+  // 格式化地址
+  const displayAddress = address 
+    ? `${address.slice(0, 6)}...${address.slice(-4)}`
+    : "Not Connected";
+  const network = chain?.name || "Unknown";
+  
   const [totalBGPClaimed] = useState<number>(() => {
     try {
       const raw: unknown = JSON.parse(
@@ -45,14 +55,20 @@ export default function MePage() {
     return 0;
   });
 
-  const loginDays = 45;
-  const currentLevel = 3;
-  const totalIncome = 1250.5;
+  // 使用真实合约数据
+  const totalInteractions = userInfo ? Number(userInfo.totalInteractionCount) : 0;
+  const loginDays = Math.ceil(totalInteractions / 2); // 每天最多2次交互,计算活跃天数
+  const currentLevel = userInfo ? Number(userInfo.currentLevel) : 0;
+  const totalIncome = userInfo 
+    ? (Number(userInfo.userTotalUSDTWithdrawn) + Number(userInfo.userPendingUSDT)) / 1e6 
+    : 0;
 
   useEffect(() => {
-    try {
-      localStorage.setItem("walletAddress", address.toLowerCase());
-    } catch {}
+    if (address) {
+      try {
+        localStorage.setItem("walletAddress", address.toLowerCase());
+      } catch {}
+    }
   }, [address]);
 
   // Removed IP fetch per spec
@@ -86,13 +102,15 @@ export default function MePage() {
                 {t("wallet")} & {t("network")}
               </div>
               <div className="flex items-center justify-between mt-1">
-                <div className="text-lg font-semibold">{address}</div>
+                <div className="text-lg font-semibold">{displayAddress}</div>
                 <div className="text-sm text-muted-foreground">{network}</div>
               </div>
               <div className="mt-3">
                 <Button
                   variant="outline"
                   className="transition-all duration-200 hover:scale-105 active:scale-95 bg-transparent"
+                  onClick={() => disconnect()}
+                  disabled={!address}
                 >
                   {t("disconnect")}
                 </Button>

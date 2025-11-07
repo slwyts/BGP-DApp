@@ -8,6 +8,8 @@ import { useLocale } from "@/components/locale-provider";
 import { DotPattern } from "@/components/ui/dot-pattern";
 import { Crown, TrendingUp, ArrowDownToLine } from "lucide-react";
 import { ClaimAnimationOverlay } from "@/components/claim-animation-overlay";
+import { useUserInfo, useClaimLevelReward, useWithdrawUSDT, useBGPBalance, useLevelClaimStatus } from "@/lib/hooks/use-contracts";
+import { useAccount } from "wagmi";
 
 type Level = {
   v: number;
@@ -23,21 +25,25 @@ const LEVELS: Level[] = [
   { v: 4, need: 500, usdt: 5, bgp: 2000 },
   { v: 5, need: 3000, usdt: 20, bgp: 8000 },
   { v: 6, need: 10000, usdt: 100, bgp: 10000 },
-  { v: 7, need: 32000, usdt: 320, bgp: 30000 },
+  { v: 7, need: 30000, usdt: 200, bgp: 30000 },
   { v: 8, need: 50000, usdt: 300, bgp: 50000 },
   { v: 9, need: 100000, usdt: 500, bgp: 100000 },
   { v: 10, need: 300000, usdt: 1000, bgp: 300000 },
-  { v: 11, need: 502000, usdt: 2000, bgp: 500000 },
+  { v: 11, need: 500000, usdt: 2000, bgp: 500000 },
   { v: 12, need: 1000000, usdt: 10000, bgp: 1000000 },
 ];
 
 export default function RewardsPage() {
   const { t } = useLocale();
-  const totalContribution = 12650;
-  const [claimed, setClaimed] = useState<number[]>([1, 2]);
-  const withdrawableUSDT = 7.5;
-  const withdrawableBGP = 50000;
-  // Removed unused withdraw input state
+  const { address } = useAccount();
+  
+  // 使用真实合约数据
+  const { userInfo, refetch: refetchUserInfo } = useUserInfo();
+  const { balance: bgpBalance } = useBGPBalance();
+  const { claimedLevels, refetch: refetchClaimStatus } = useLevelClaimStatus();
+  const { claimLevelReward, isPending: isClaimPending, isSuccess: isClaimSuccess } = useClaimLevelReward();
+  const { withdrawUSDT, isPending: isWithdrawPending, isSuccess: isWithdrawSuccess } = useWithdrawUSDT();
+
   const [overlay, setOverlay] = useState<{
     open: boolean;
     usdt?: number;
@@ -46,6 +52,12 @@ export default function RewardsPage() {
   const [records, setRecords] = useState<
     Array<{ type: "USDT" | "BGP"; amount: number; ts: number }>
   >([]);
+
+  // 从合约数据中提取
+  const totalContribution = userInfo ? Number(userInfo.userContribution) : 0;
+  const userCurrentLevel = userInfo ? Number(userInfo.currentLevel) : 0;
+  const withdrawableUSDT = userInfo ? Number(userInfo.userPendingUSDT) / 1e6 : 0; // USDT 6位精度
+  const totalUSDTWithdrawn = userInfo ? Number(userInfo.userTotalUSDTWithdrawn) / 1e6 : 0;
 
   const playSound = () => {
     try {
@@ -69,26 +81,49 @@ export default function RewardsPage() {
     };
   }, [overlay.open]);
 
-  const currentLevel = LEVELS.reduce((level, lv) => {
-    return totalContribution >= lv.need ? lv.v : level;
-  }, 0);
+  // 刷新数据当领取成功时
+  useEffect(() => {
+    if (isClaimSuccess) {
+      playSound();
+      refetchUserInfo();
+      refetchClaimStatus();
+    }
+  }, [isClaimSuccess, refetchUserInfo, refetchClaimStatus]);
+
+  useEffect(() => {
+    if (isWithdrawSuccess) {
+      refetchUserInfo();
+    }
+  }, [isWithdrawSuccess, refetchUserInfo]);
 
   const nextLevel = LEVELS.find((lv) => lv.need > totalContribution);
 
-  const markClaimed = (v: number, usdt: number, bgp: number, nowTs: number) => {
-    setClaimed((arr) => Array.from(new Set([...arr, v])));
-    playSound();
-    setOverlay({ open: true, usdt, bgp });
+  const handleClaimLevel = (level: number, usdtReward: number, bgpReward: number) => {
+    claimLevelReward(level);
+    // 显示动画
+    setOverlay({ open: true, usdt: usdtReward, bgp: bgpReward });
+    // 保存到本地记录
     try {
       const key = "claimRecords";
       const existing = JSON.parse(localStorage.getItem(key) || "[]");
+      const nowTs = Date.now();
       const next = [
         ...existing,
-        { type: "USDT", amount: usdt, ts: nowTs },
-        { type: "BGP", amount: bgp, ts: nowTs },
+        { type: "USDT", amount: usdtReward, ts: nowTs },
+        { type: "BGP", amount: bgpReward, ts: nowTs },
       ].slice(-100);
       localStorage.setItem(key, JSON.stringify(next));
     } catch {}
+  };
+
+  const handleWithdrawUSDT = () => {
+    withdrawUSDT();
+  };
+
+  // 检查等级是否已领取 (从合约读取)
+  const checkIsClaimed = (level: number) => {
+    // level 是 1-12, 数组索引是 0-11
+    return claimedLevels[level - 1] || false;
   };
 
   return (
@@ -169,7 +204,7 @@ export default function RewardsPage() {
                     <span>{t("level")}</span>
                   </div>
                   <div className="text-4xl font-bold bg-linear-to-r from-primary via-orange-500 to-orange-600 bg-clip-text text-transparent">
-                    V{currentLevel}
+                    V{userCurrentLevel}
                   </div>
                   {nextLevel && (
                     <div className="text-xs text-muted-foreground mt-1">
@@ -198,7 +233,7 @@ export default function RewardsPage() {
               <div className="relative z-10 space-y-2">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-primary">
-                    {withdrawableBGP.toLocaleString()} BGP
+                    {Number(bgpBalance || 0).toLocaleString()} BGP
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {t("bgpWithdrawable")}
@@ -207,6 +242,7 @@ export default function RewardsPage() {
                 <Button
                   size="sm"
                   className="w-full bg-linear-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90"
+                  disabled
                 >
                   <ArrowDownToLine className="w-4 h-4 mr-1" />
                   {t("withdrawButton")}
@@ -219,7 +255,7 @@ export default function RewardsPage() {
               <div className="relative z-10 space-y-2">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-primary">
-                    {withdrawableUSDT} U
+                    {withdrawableUSDT.toFixed(1)} U
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {t("usdtWithdrawable")}
@@ -228,9 +264,11 @@ export default function RewardsPage() {
                 <Button
                   size="sm"
                   className="w-full bg-linear-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90"
+                  onClick={handleWithdrawUSDT}
+                  disabled={withdrawableUSDT < 10 || isWithdrawPending}
                 >
                   <ArrowDownToLine className="w-4 h-4 mr-1" />
-                  {t("withdrawButton")}
+                  {isWithdrawPending ? t("pending") : t("withdrawButton")}
                 </Button>
               </div>
             </div>
@@ -241,9 +279,9 @@ export default function RewardsPage() {
             <div className="space-y-3">
               {LEVELS.map((lv) => {
                 const reached = totalContribution >= lv.need;
-                const isClaimed = claimed.includes(lv.v);
+                const isClaimed = checkIsClaimed(lv.v);
                 const progress = Math.min(1, totalContribution / lv.need);
-                const isCurrentLevel = lv.v === currentLevel;
+                const isCurrentLevel = lv.v === userCurrentLevel;
 
                 return (
                   <div
@@ -288,20 +326,11 @@ export default function RewardsPage() {
                       </div>
                       <Button
                         size="sm"
-                        disabled={!reached || isClaimed}
-                        onClick={(e) =>
-                          markClaimed(
-                            lv.v,
-                            lv.usdt,
-                            lv.bgp,
-                            Math.floor(
-                              performance.timeOrigin + (e.timeStamp || 0),
-                            ),
-                          )
-                        }
+                        disabled={!reached || isClaimed || isClaimPending}
+                        onClick={() => handleClaimLevel(lv.v, lv.usdt, lv.bgp)}
                         className="transition-all duration-200 hover:scale-105 active:scale-95"
                       >
-                        {isClaimed ? t("claimed") : t("claim")}
+                        {isClaimed ? t("claimed") : isClaimPending ? t("pending") : t("claim")}
                       </Button>
                     </div>
                   </div>
