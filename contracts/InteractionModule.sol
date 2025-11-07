@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.30;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./BGPToken.sol";
@@ -20,7 +20,7 @@ abstract contract InteractionModule is Ownable {
     function _getAntiSybil() internal view virtual returns (IAntiSybil);
     
     // 交互配置
-    uint256 public constant INTERACTION_COST = 0.00018 ether; // ~$0.72 (ETH @ $4000)
+    uint256 public constant INTERACTION_COST = 0.00015 ether; // 0.6 USDT (ETH @ $4000)
     uint256 public constant DAILY_BGP_REWARD = 2000 * 10**18;
     uint256 public constant SLOT_DURATION = 12 hours;
     

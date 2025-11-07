@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.30;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -20,9 +20,9 @@ abstract contract LevelModule is Ownable {
 
     // 等级配置
     struct Level {
-        uint256 requiredContribution; // 18位精度
-        uint256 usdtReward;           // 6位精度
-        uint256 bgpReward;            // 18位精度
+        uint256 requiredContribution; // 贡献值门槛（整数）
+        uint256 usdtReward;           // USDT奖励，6位精度
+        uint256 bgpReward;            // BGP奖励，18位精度
     }
     
     Level[12] public levels;
@@ -47,26 +47,26 @@ abstract contract LevelModule is Ownable {
     event LevelUpdated(address indexed user, uint8 oldLevel, uint8 newLevel);
     
     constructor() {
-        // 初始化等级配置
-        // 贡献值 (18位), USDT奖励 (6位), BGP奖励 (18位)
-        levels[0] = Level(10 * 10**18, 1 * 10**5, 200 * 10**18);           // V1: 10U, 0.1U, 200 BGP
-        levels[1] = Level(50 * 10**18, 5 * 10**5, 200 * 10**18);           // V2: 50U, 0.5U, 200 BGP
-        levels[2] = Level(100 * 10**18, 1 * 10**6, 200 * 10**18);          // V3: 100U, 1U, 200 BGP
-        levels[3] = Level(500 * 10**18, 5 * 10**6, 2000 * 10**18);         // V4: 500U, 5U, 2000 BGP
-        levels[4] = Level(3000 * 10**18, 20 * 10**6, 8000 * 10**18);       // V5: 3kU, 20U, 8k BGP
-        levels[5] = Level(10000 * 10**18, 100 * 10**6, 10000 * 10**18);    // V6: 10kU, 100U, 10k BGP
-        levels[6] = Level(30000 * 10**18, 200 * 10**6, 30000 * 10**18);    // V7: 30kU, 200U, 30k BGP
-        levels[7] = Level(50000 * 10**18, 300 * 10**6, 50000 * 10**18);    // V8: 50kU, 300U, 50k BGP
-        levels[8] = Level(100000 * 10**18, 500 * 10**6, 100000 * 10**18);  // V9: 100kU, 500U, 100k BGP
-        levels[9] = Level(300000 * 10**18, 1000 * 10**6, 300000 * 10**18); // V10: 300kU, 1kU, 300k BGP
-        levels[10] = Level(500000 * 10**18, 2000 * 10**6, 500000 * 10**18);// V11: 500kU, 2kU, 500k BGP
-        levels[11] = Level(1000000 * 10**18, 10000 * 10**6, 1000000 * 10**18); // V12: 1M U, 10kU, 1M BGP
+        // 初始化等级配置（根据 README）
+        // 贡献值（整数）, USDT奖励 (6位精度), BGP奖励 (18位精度)
+        levels[0] = Level(10, 1 * 10**5, 200 * 10**18);                // V1: 10, 0.1 USDT, 200 BGP
+        levels[1] = Level(50, 5 * 10**5, 200 * 10**18);                // V2: 50, 0.5 USDT, 200 BGP
+        levels[2] = Level(100, 1 * 10**6, 200 * 10**18);               // V3: 100, 1 USDT, 200 BGP
+        levels[3] = Level(500, 5 * 10**6, 2000 * 10**18);              // V4: 500, 5 USDT, 2000 BGP
+        levels[4] = Level(3000, 20 * 10**6, 8000 * 10**18);            // V5: 3000, 20 USDT, 8000 BGP
+        levels[5] = Level(10000, 100 * 10**6, 10000 * 10**18);         // V6: 1W, 100 USDT, 1W BGP
+        levels[6] = Level(30000, 200 * 10**6, 30000 * 10**18);         // V7: 3W, 200 USDT, 3W BGP
+        levels[7] = Level(50000, 300 * 10**6, 50000 * 10**18);         // V8: 5W, 300 USDT, 5W BGP
+        levels[8] = Level(100000, 500 * 10**6, 100000 * 10**18);       // V9: 10W, 500 USDT, 10W BGP
+        levels[9] = Level(300000, 1000 * 10**6, 300000 * 10**18);      // V10: 30W, 1000 USDT, 30W BGP
+        levels[10] = Level(500000, 2000 * 10**6, 500000 * 10**18);     // V11: 50W, 2000 USDT, 50W BGP
+        levels[11] = Level(1000000, 10000 * 10**6, 1000000 * 10**18);  // V12: 100W, 1W USDT, 100W BGP
     }
     
     /**
      * @dev 检查并更新用户等级
      * @param user 用户地址
-     * @param userContribution 用户当前贡献值 (18位精度)
+     * @param userContribution 用户当前贡献值（整数）
      */
     function _updateUserLevel(address user, uint256 userContribution) internal {
         uint8 oldLevel = userLevel[user];

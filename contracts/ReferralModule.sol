@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.30;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./BGPToken.sol";
@@ -17,8 +17,8 @@ abstract contract ReferralModule is Ownable {
     
     // 推荐奖励配置
     struct ReferralReward {
-        uint256 bgpAmount;         // 18位精度
-        uint256 contributionValue; // 6位精度
+        uint256 bgpAmount;         // BGP数量，18位精度
+        uint256 contributionValue; // 贡献值，整数（不带小数）
     }
     
     // L1-L15 的奖励配置
@@ -27,7 +27,7 @@ abstract contract ReferralModule is Ownable {
     // 推荐关系
     mapping(address => address) public referrer; // 用户 -> 推荐人
     mapping(address => address[]) public directReferrals; // 直推列表
-    mapping(address => uint256) public contribution; // 贡献值 (18位精度, 对应USDT价值)
+    mapping(address => uint256) public contribution; // 贡献值（整数）
     
     // 统计数据
     mapping(address => uint256) public totalReferralRewards; // 总推荐奖励 (BGP, 18位精度)
@@ -44,18 +44,14 @@ abstract contract ReferralModule is Ownable {
     
     constructor() {
         // 初始化推荐奖励配置
-        // BGP 价格 0.00175 USDT, 所以:
-        // 800 BGP = 1.4 USDT
-        // 400 BGP = 0.7 USDT  
-        // 200 BGP = 0.35 USDT
-        // 100 BGP = 0.175 USDT
-        // BGP奖励 (18位), 贡献值 (18位, 模拟USDT价值)
-        levelRewards[1] = ReferralReward(800 * 10**18, 14 * 10**17); // 1.4 USDT
-        levelRewards[2] = ReferralReward(400 * 10**18, 7 * 10**17);  // 0.7 USDT
-        levelRewards[3] = ReferralReward(200 * 10**18, 35 * 10**16); // 0.35 USDT
-        // L4-L15 都是 100 BGP, 0.175 USDT 贡献值
+        // 根据 README: L1=8U, L2=4U, L3=2U, L4-15=1U 贡献值
+        // BGP奖励 (18位精度), 贡献值 (整数，不带精度)
+        levelRewards[1] = ReferralReward(800 * 10**18, 8); // L1: 800 BGP, 8 贡献值
+        levelRewards[2] = ReferralReward(400 * 10**18, 4); // L2: 400 BGP, 4 贡献值
+        levelRewards[3] = ReferralReward(200 * 10**18, 2); // L3: 200 BGP, 2 贡献值
+        // L4-L15 都是 100 BGP, 1 贡献值
         for (uint8 i = 4; i <= 15; i++) {
-            levelRewards[i] = ReferralReward(100 * 10**18, 175 * 10**15); // 0.175 USDT
+            levelRewards[i] = ReferralReward(100 * 10**18, 1);
         }
     }
     

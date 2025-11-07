@@ -6,9 +6,14 @@
     "dev": "next dev",
     "build": "next build",
     "start": "npx serve@latest out",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "node": "hardhat node",
+    "deploy:local": "hardhat run scripts/deploy.ts --network localhost"
   },
   "dependencies": {
+    "@openzeppelin/contracts": "^5.4.0",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-dropdown-menu": "2.1.16",
     "@radix-ui/react-slot": "1.2.3",
@@ -32,11 +37,14 @@
     "wagmi": "^2.19.2"
   },
   "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
     "@tailwindcss/postcss": "^4.1.16",
     "@types/node": "^24.9.1",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
+    "hardhat": "^2.22.18",
     "postcss": "^8.5.6",
+    "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   }
 }

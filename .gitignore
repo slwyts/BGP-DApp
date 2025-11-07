@@ -16,3 +16,15 @@ coverage
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Hardhat
+cache
+artifacts
+typechain-types
+.env
+coverage.json
+.openzeppelin
+deployments
+
+# Local test
+.env.localnet

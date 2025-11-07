@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.30;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
@@ -49,23 +49,20 @@ contract BelaChainDApp is
      * @param _bgpToken BGP 代币合约地址
      * @param _usdtToken USDT 代币合约地址
      * @param _antiSybilContract AntiSybil 合约地址
-     * @param _treasury 资金接收地址
      */
     constructor(
         address _bgpToken,
         address _usdtToken,
-        address _antiSybilContract,
-        address payable _treasury
+        address _antiSybilContract
     ) Ownable(msg.sender) {
         require(_bgpToken != address(0), "Invalid BGP token address");
         require(_usdtToken != address(0), "Invalid USDT token address");
         require(_antiSybilContract != address(0), "Invalid AntiSybil address");
-        require(_treasury != address(0), "Invalid treasury address");
         
         bgpToken = BGPToken(_bgpToken);
         usdtToken = IERC20(_usdtToken);
         antiSybilContract = IAntiSybil(_antiSybilContract);
-        treasury = _treasury;
+        treasury = payable(msg.sender); // Treasury 就是 owner
     }
     
     /**
