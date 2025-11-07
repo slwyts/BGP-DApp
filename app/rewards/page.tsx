@@ -8,7 +8,7 @@ import { useLocale } from "@/components/locale-provider";
 import { DotPattern } from "@/components/ui/dot-pattern";
 import { Crown, TrendingUp, ArrowDownToLine } from "lucide-react";
 import { ClaimAnimationOverlay } from "@/components/claim-animation-overlay";
-import { useUserInfo, useClaimLevelReward, useWithdrawUSDT, useBGPBalance, useLevelClaimStatus } from "@/lib/hooks/use-contracts";
+import { useUserInfo, useClaimLevelReward, useWithdrawUSDT, useLevelClaimStatus, useWithdrawInteractionBGP } from "@/lib/hooks/use-contracts";
 import { useAccount } from "wagmi";
 
 type Level = {
@@ -39,10 +39,10 @@ export default function RewardsPage() {
   
   // 使用真实合约数据
   const { userInfo, refetch: refetchUserInfo } = useUserInfo();
-  const { balance: bgpBalance } = useBGPBalance();
   const { claimedLevels, refetch: refetchClaimStatus } = useLevelClaimStatus();
   const { claimLevelReward, isPending: isClaimPending, isSuccess: isClaimSuccess } = useClaimLevelReward();
   const { withdrawUSDT, isPending: isWithdrawPending, isSuccess: isWithdrawSuccess } = useWithdrawUSDT();
+  const { withdrawBGP, isPending: isWithdrawBGPPending, isSuccess: isWithdrawBGPSuccess } = useWithdrawInteractionBGP();
 
   const [overlay, setOverlay] = useState<{
     open: boolean;
@@ -58,6 +58,8 @@ export default function RewardsPage() {
   const userCurrentLevel = userInfo ? Number(userInfo.currentLevel) : 0;
   const withdrawableUSDT = userInfo ? Number(userInfo.userPendingUSDT) / 1e6 : 0; // USDT 6位精度
   const totalUSDTWithdrawn = userInfo ? Number(userInfo.userTotalUSDTWithdrawn) / 1e6 : 0;
+  const totalLevelBGP = userInfo ? Number(userInfo.userTotalLevelBGP) / 1e18 : 0; // 等级奖励获得的BGP
+  const withdrawableBGP = userInfo ? Number(userInfo.userPendingInteractionBGP) / 1e18 : 0; // 待提现的交互BGP
 
   const playSound = () => {
     try {
@@ -91,10 +93,10 @@ export default function RewardsPage() {
   }, [isClaimSuccess, refetchUserInfo, refetchClaimStatus]);
 
   useEffect(() => {
-    if (isWithdrawSuccess) {
+    if (isWithdrawSuccess || isWithdrawBGPSuccess) {
       refetchUserInfo();
     }
-  }, [isWithdrawSuccess, refetchUserInfo]);
+  }, [isWithdrawSuccess, isWithdrawBGPSuccess, refetchUserInfo]);
 
   const nextLevel = LEVELS.find((lv) => lv.need > totalContribution);
 
@@ -233,7 +235,7 @@ export default function RewardsPage() {
               <div className="relative z-10 space-y-2">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-primary">
-                    {Number(bgpBalance || 0).toLocaleString()} BGP
+                    {withdrawableBGP.toLocaleString()} BGP
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {t("bgpWithdrawable")}
@@ -242,10 +244,11 @@ export default function RewardsPage() {
                 <Button
                   size="sm"
                   className="w-full bg-linear-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90"
-                  disabled
+                  onClick={() => withdrawBGP()}
+                  disabled={isWithdrawBGPPending || withdrawableBGP < 10000}
                 >
                   <ArrowDownToLine className="w-4 h-4 mr-1" />
-                  {t("withdrawButton")}
+                  {isWithdrawBGPPending ? t("pending") : t("withdrawButton")}
                 </Button>
               </div>
             </div>

@@ -35,6 +35,13 @@ abstract contract InteractionModule is Ownable {
     
     mapping(address => DailyInteraction) public userInteractions;
     
+    // 交互奖励累积（待提现）
+    mapping(address => uint256) public pendingInteractionBGP; // 待提现的交互BGP (18位精度)
+    mapping(address => uint256) public totalInteractionBGPWithdrawn; // 已提现的交互BGP
+    
+    // 配置
+    uint256 public constant MIN_WITHDRAW_BGP = 10000 * 10**18; // 最低提现 10000 BGP
+    
     // 全局统计
     uint256 public totalInteractions;
     uint256 public totalParticipants;
@@ -47,6 +54,7 @@ abstract contract InteractionModule is Ownable {
         uint256 totalCount,
         uint256 timestamp
     );
+    event InteractionBGPWithdrawn(address indexed user, uint256 amount);
     
     /**
      * @dev 内部交互函数（被主合约调用）
@@ -99,11 +107,8 @@ abstract contract InteractionModule is Ownable {
         
         totalInteractions++;
         
-        // 发放 BGP 奖励（使用 transfer 而不是 mint）
-        require(
-            _getBGPToken().transfer(user, DAILY_BGP_REWARD),
-            "BGP transfer failed"
-        );
+        // 累积 BGP 奖励（不立即发放）
+        pendingInteractionBGP[user] += DAILY_BGP_REWARD;
         
         emit Interacted(
             user,
@@ -112,6 +117,26 @@ abstract contract InteractionModule is Ownable {
             interaction.totalInteractions,
             block.timestamp
         );
+    }
+    
+    /**
+     * @dev 提现交互奖励 BGP（累计达到 10000 BGP 才能提）
+     */
+    function withdrawInteractionBGP() external virtual {
+        uint256 amount = pendingInteractionBGP[msg.sender];
+        require(amount >= MIN_WITHDRAW_BGP, "Insufficient BGP balance");
+        
+        BGPToken bgpToken = _getBGPToken();
+        require(bgpToken.balanceOf(address(this)) >= amount, "Insufficient contract balance");
+        
+        // 清零待提现金额
+        pendingInteractionBGP[msg.sender] = 0;
+        totalInteractionBGPWithdrawn[msg.sender] += amount;
+        
+        // 转账
+        require(bgpToken.transfer(msg.sender, amount), "BGP transfer failed");
+        
+        emit InteractionBGPWithdrawn(msg.sender, amount);
     }
     
     /**

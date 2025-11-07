@@ -17,6 +17,8 @@ export interface UserInfo {
   // 交互信息
   todayInteractionCount: number;
   totalInteractionCount: bigint;
+  userPendingInteractionBGP: bigint;
+  userTotalInteractionBGPWithdrawn: bigint;
 }
 
 export interface GlobalStats {

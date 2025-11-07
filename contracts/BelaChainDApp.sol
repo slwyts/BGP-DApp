@@ -159,7 +159,9 @@ contract BelaChainDApp is
             uint256 userTotalLevelBGP,
             // 交互信息
             uint8 todayInteractionCount,
-            uint256 totalInteractionCount
+            uint256 totalInteractionCount,
+            uint256 userPendingInteractionBGP,
+            uint256 userTotalInteractionBGPWithdrawn
         )
     {
         return (
@@ -176,7 +178,9 @@ contract BelaChainDApp is
             totalLevelBGP[user],
             // 交互信息
             this.getTodayInteractionCount(user),
-            this.getTotalInteractionCount(user)
+            this.getTotalInteractionCount(user),
+            pendingInteractionBGP[user],
+            totalInteractionBGPWithdrawn[user]
         );
     }
     

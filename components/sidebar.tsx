@@ -14,12 +14,16 @@ import {
   Wallet,
   Globe,
   Search,
+  LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLocale } from "@/components/locale-provider";
 import { cn } from "@/lib/utils";
 import { useEffect } from "react";
 import Image from "next/image";
+import { useAccount, useDisconnect } from "wagmi";
+import { useWeb3Modal } from "@web3modal/wagmi/react";
+import { useBGPBalance } from "@/lib/hooks/use-contracts";
 
 type SidebarProps = {
   open: boolean;
@@ -29,6 +33,10 @@ type SidebarProps = {
 export function Sidebar({ open, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { t } = useLocale();
+  const { address, isConnected } = useAccount();
+  const { disconnect } = useDisconnect();
+  const { open: openWeb3Modal } = useWeb3Modal();
+  const { balance } = useBGPBalance();
 
   const items = [
     { href: "/", label: t("home"), icon: Home },
@@ -201,24 +209,44 @@ export function Sidebar({ open, onClose }: SidebarProps) {
               transition={{ delay: 0.4 }}
               className="mt-auto space-y-3 relative z-10"
             >
-              <Button
-                variant="outline"
-                className="w-full bg-linear-to-r from-primary/10 to-orange-500/10 border-primary/30 hover:from-primary/20 hover:to-orange-500/20 transition-all duration-300"
-              >
-                <Wallet className="w-4 h-4 mr-2" />
-                {t("connectWallet")}
-              </Button>
+              {isConnected && address ? (
+                <Button
+                  variant="outline"
+                  className="w-full bg-linear-to-r from-primary/10 to-orange-500/10 border-primary/30 hover:from-primary/20 hover:to-orange-500/20 transition-all duration-300"
+                  onClick={() => {
+                    disconnect();
+                    onClose();
+                  }}
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  {t("disconnect")}
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  className="w-full bg-linear-to-r from-primary/10 to-orange-500/10 border-primary/30 hover:from-primary/20 hover:to-orange-500/20 transition-all duration-300"
+                  onClick={() => {
+                    openWeb3Modal();
+                    onClose();
+                  }}
+                >
+                  <Wallet className="w-4 h-4 mr-2" />
+                  {t("connectWallet")}
+                </Button>
+              )}
 
-              <div className="relative overflow-hidden bg-linear-to-br from-primary/10 via-orange-500/10 to-transparent rounded-2xl p-4 border border-primary/30">
-                <div className="relative z-10">
-                  <div className="text-xs text-muted-foreground mb-1">
-                    {t("totalBalance")}
-                  </div>
-                  <div className="text-2xl font-bold bg-linear-to-r from-primary to-orange-500 bg-clip-text text-transparent">
-                    12,345 BLA
+              {isConnected && (
+                <div className="relative overflow-hidden bg-linear-to-br from-primary/10 via-orange-500/10 to-transparent rounded-2xl p-4 border border-primary/30">
+                  <div className="relative z-10">
+                    <div className="text-xs text-muted-foreground mb-1">
+                      {t("myBGP")}
+                    </div>
+                    <div className="text-2xl font-bold bg-linear-to-r from-primary to-orange-500 bg-clip-text text-transparent">
+                      {Number(balance || 0).toLocaleString()} BGP
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               <div className="text-xs text-muted-foreground text-center pt-2">
                 © {new Date().getFullYear()} Belachain

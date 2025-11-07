@@ -25,7 +25,7 @@ export function StatsGrid() {
     {
       icon: Users,
       label: t("totalParticipatingAddresses"),
-      value: totalParticipants.toLocaleString(),
+      value: totalParticipants ? totalParticipants.toLocaleString() : "-",
       unit: "",
       gradient: "from-primary to-orange-500",
       bgGradient: "from-primary/10 to-orange-500/10",
@@ -33,7 +33,7 @@ export function StatsGrid() {
     {
       icon: Activity,
       label: t("totalInteractions"),
-      value: totalInteractions.toLocaleString(),
+      value: totalInteractions ? totalInteractions.toLocaleString() : "-",
       unit: "",
       gradient: "from-orange-500 to-orange-600",
       bgGradient: "from-orange-500/10 to-orange-600/10",
@@ -50,11 +50,13 @@ export function StatsGrid() {
   const currentLevel = userInfo ? Number(userInfo.currentLevel) : 0;
   
   // 计算活跃天数: 每天最多2次交互,总交互数/2 = 活跃天数(向上取整)
-  const activeDays = Math.ceil(totalInteractionCount / 2);
+  const activeDays = totalInteractionCount > 0 ? Math.ceil(totalInteractionCount / 2) : 0;
   
   // 计算总 BGP 奖励 = 交互奖励 + 推荐奖励 + 等级奖励
   const interactionBGP = totalInteractionCount * 2000; // DAILY_BGP_REWARD
-  const totalBGP = interactionBGP + totalReferralRewards / 1e18 + totalLevelBGP / 1e18;
+  const referralBGP = totalReferralRewards > 0 ? totalReferralRewards / 1e18 : 0;
+  const levelBGP = totalLevelBGP > 0 ? totalLevelBGP / 1e18 : 0;
+  const totalBGP = interactionBGP + referralBGP + levelBGP;
 
   const personalStats = [
     {
@@ -100,7 +102,7 @@ export function StatsGrid() {
     {
       icon: DollarSign,
       label: t("cumulativeRewards"),
-      value: Math.floor(totalBGP).toLocaleString(),
+      value: !isNaN(totalBGP) ? Math.floor(totalBGP).toLocaleString() : "0",
       unit: "BGP",
       gradient: "from-orange-600 to-primary",
       bgGradient: "from-orange-600/10 to-primary/10",

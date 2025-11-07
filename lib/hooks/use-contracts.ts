@@ -27,8 +27,25 @@ export function useUserInfo() {
     },
   })
 
+  // 映射合约返回的元组到 UserInfo 对象
+  const userInfo: UserInfo | undefined = data ? {
+    userReferrer: (data as any[])[0],
+    directReferralCount: (data as any[])[1],
+    userTeamSize: (data as any[])[2],
+    userContribution: (data as any[])[3],
+    userTotalReferralRewards: (data as any[])[4],
+    currentLevel: (data as any[])[5],
+    userPendingUSDT: (data as any[])[6],
+    userTotalUSDTWithdrawn: (data as any[])[7],
+    userTotalLevelBGP: (data as any[])[8],
+    todayInteractionCount: (data as any[])[9],
+    totalInteractionCount: (data as any[])[10],
+    userPendingInteractionBGP: (data as any[])[11],
+    userTotalInteractionBGPWithdrawn: (data as any[])[12],
+  } : undefined
+
   return {
-    userInfo: data as UserInfo | undefined,
+    userInfo,
     isLoading,
     error,
     refetch,
@@ -184,6 +201,39 @@ export function useWithdrawUSDT() {
 
   return {
     withdrawUSDT,
+    hash,
+    isPending,
+    isConfirming,
+    isSuccess,
+    error,
+  }
+}
+
+/**
+ * 提现交互奖励BGP
+ */
+export function useWithdrawInteractionBGP() {
+  const { chainId } = useAccount()
+  const addresses = chainId ? getContractAddresses() : null
+  const { writeContract, data: hash, isPending, error } = useWriteContract()
+
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+    hash,
+  })
+
+  const withdrawBGP = () => {
+    if (!addresses) return
+    
+    writeContract({
+      address: addresses.dapp as `0x${string}`,
+      abi: DAppABI,
+      functionName: 'withdrawInteractionBGP',
+      args: [],
+    })
+  }
+
+  return {
+    withdrawBGP,
     hash,
     isPending,
     isConfirming,
