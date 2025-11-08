@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "dotenv -e .env.development -- next build",
-    "build:prod": "dotenv -e .env.production -- next build",
+    "build": "npm run compile && dotenv -e .env.development -- next build",
+    "build:prod": "npm run compile && dotenv -e .env.production -- next build",
     "start": "npx serve@latest out",
     "lint": "eslint .",
     "compile": "hardhat compile",
