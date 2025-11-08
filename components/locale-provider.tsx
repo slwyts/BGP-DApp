@@ -18,24 +18,22 @@ interface LocaleContextType {
 const LocaleContext = createContext<LocaleContextType | undefined>(undefined);
 
 export function LocaleProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocale] = useState<Locale>(() => {
-    if (typeof window !== "undefined") {
-      const savedLocale = localStorage.getItem("locale") as Locale;
-      if (savedLocale && (savedLocale === "en" || savedLocale === "zh")) {
-        return savedLocale;
-      }
-    }
-    return "zh";
-  });
+  const [locale, setLocale] = useState<Locale>("zh");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => setMounted(true), 0);
-    return () => clearTimeout(timer);
+    // 只在客户端加载 localStorage
+    if (typeof window !== "undefined") {
+      const savedLocale = localStorage.getItem("locale") as Locale;
+      if (savedLocale && (savedLocale === "en" || savedLocale === "zh")) {
+        setLocale(savedLocale);
+      }
+    }
+    setMounted(true);
   }, []);
 
   useEffect(() => {
-    if (mounted) {
+    if (mounted && typeof window !== "undefined") {
       localStorage.setItem("locale", locale);
     }
   }, [locale, mounted]);

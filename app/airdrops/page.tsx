@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useScroll, useTransform } from "motion/react";
-import { Timer, Sparkles, Zap, Rocket, PlusCircle } from "lucide-react";
+import { Timer, Sparkles, Zap, Rocket, PlusCircle, Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GlobeAirdrop } from "@/components/globe-airdrop";
 import { WarpBackground } from "@/components/ui/warp-background";
@@ -11,7 +11,7 @@ import { ClaimAnimationOverlay } from "@/components/claim-animation-overlay";
 import { DailyRewardAnimation } from "@/components/daily-reward-animation";
 import { StatsGrid } from "@/components/stats-grid";
 import { useEffect, useState, useRef, useMemo, useCallback } from "react";
-import { useInteractionStatus, useInteract } from "@/lib/hooks/use-contracts";
+import { useInteractionStatus, useInteract, useUserInfo, useEarlyBirdStatus, useGlobalStats } from "@/lib/hooks/use-contracts";
 import { hashIP } from "@/lib/ip-hash";
 import { getContractAddresses } from "@/lib/contracts/addresses";
 import { useWalletClient } from "wagmi";
@@ -27,11 +27,34 @@ export default function HomePage() {
   const [showDailyRewardAnim, setShowDailyRewardAnim] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [hydrated, setHydrated] = useState(false);
+  const [earnedReward, setEarnedReward] = useState(1000); // 保存本次获得的奖励
 
   // 使用真实合约数据
   const { canInteract, nextSlotTime, todayCount, refetch: refetchStatus } = useInteractionStatus();
   const { interact, isPending, isConfirming, isSuccess } = useInteract();
   const { data: walletClient } = useWalletClient();
+  const { userInfo, refetch: refetchUserInfo } = useUserInfo();
+  const { isEarlyBirdAvailable, earlyBirdReward } = useEarlyBirdStatus();
+  const { refetch: refetchGlobalStats } = useGlobalStats();
+
+  // 计算本次交互将获得的 BGP 奖励
+  const calculateReward = useCallback(() => {
+    const baseReward = 1000; // 基础交互奖励
+    
+    // 如果没有用户数据，默认返回基础奖励
+    if (!userInfo) return baseReward;
+    
+    // 判断是否获得早鸟奖励的关键标志：hasClaimedEarlyBird
+    // 如果还没领过早鸟奖励，并且是首次交互（或者没有推荐人），就给早鸟奖励
+    const isFirstTimeUser = userInfo.totalInteractionCount === BigInt(0) && 
+                           userInfo.userReferrer === '0x0000000000000000000000000000000000000000';
+    
+    if (!userInfo.hasClaimedEarlyBird && isFirstTimeUser && isEarlyBirdAvailable) {
+      return baseReward + earlyBirdReward; // 6000 BGP
+    }
+    
+    return baseReward; // 1000 BGP
+  }, [userInfo, isEarlyBirdAvailable, earlyBirdReward]);
 
   useEffect(() => {
     const timer = setTimeout(() => setHydrated(true), 0);
@@ -99,21 +122,28 @@ export default function HomePage() {
   useEffect(() => {
     if (isSuccess) {
       setShowDailyRewardAnim(true);
+      
       setTimeout(() => {
         setShowDailyRewardAnim(false);
-        onClaim({ bgp: 2000 }); // DAILY_BGP_REWARD = 2000
-        refetchStatus();
+        onClaim({ bgp: earnedReward }); // 使用保存的奖励金额
+        
+        // 刷新所有数据
+        refetchStatus();      // 刷新交互状态
+        refetchUserInfo();    // 刷新用户信息
+        refetchGlobalStats(); // 刷新全局统计
+        
+        console.log('✅ 交互成功，数据已刷新');
       }, 1200);
     }
-  }, [isSuccess, refetchStatus]);
+  }, [isSuccess, earnedReward, refetchStatus, refetchUserInfo, refetchGlobalStats]);
 
   const nextSlotLabel = useMemo(() => {
-    if (!todayCount || todayCount >= dailyLimit) return "00:00";
     if (!nextSlotTime) return "";
     const date = new Date(nextSlotTime * 1000);
     const h = date.getHours();
-    return h === 12 ? "12:00" : "00:00";
-  }, [nextSlotTime, todayCount]);
+    const m = date.getMinutes();
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+  }, [nextSlotTime]);
 
   const onClaim = (payout?: { usdt?: number; bgp?: number }) => {
     playSound();
@@ -124,6 +154,20 @@ export default function HomePage() {
 
   const onInteract = async () => {
     if (!canInteract || isPending || isConfirming) return;
+    
+    // 在交互前计算奖励并保存
+    const reward = calculateReward();
+    console.log('🎁 本次交互奖励计算:', {
+      reward,
+      userInfo: userInfo ? {
+        totalInteractionCount: Number(userInfo.totalInteractionCount),
+        hasClaimedEarlyBird: userInfo.hasClaimedEarlyBird,
+        userReferrer: userInfo.userReferrer,
+      } : 'null',
+      isEarlyBirdAvailable,
+      earlyBirdReward
+    });
+    setEarnedReward(reward);
     
     try {
       // 生成 IP hash
@@ -196,6 +240,7 @@ export default function HomePage() {
         <DailyRewardAnimation
           open={showDailyRewardAnim}
           onClose={() => setShowDailyRewardAnim(false)}
+          amount={earnedReward}
         />
 
         <SiteHeader />

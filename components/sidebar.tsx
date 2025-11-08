@@ -19,10 +19,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { useLocale } from "@/components/locale-provider";
 import { cn } from "@/lib/utils";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useAccount, useDisconnect } from "wagmi";
-import { useWeb3Modal } from "@web3modal/wagmi/react";
 import { useBGPBalance } from "@/lib/hooks/use-contracts";
 
 type SidebarProps = {
@@ -35,8 +34,21 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const { t } = useLocale();
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
-  const { open: openWeb3Modal } = useWeb3Modal();
   const { balance } = useBGPBalance();
+  const [mounted, setMounted] = useState(false);
+  const [openWeb3Modal, setOpenWeb3Modal] = useState<(() => void) | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+    // 只在客户端导入 useWeb3Modal
+    import('@web3modal/wagmi/react').then((module) => {
+      // 通过全局事件触发
+      setOpenWeb3Modal(() => () => {
+        const event = new CustomEvent('w3m-open');
+        window.dispatchEvent(event);
+      });
+    });
+  }, []);
 
   const items = [
     { href: "/", label: t("home"), icon: Home },
@@ -226,7 +238,9 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                   variant="outline"
                   className="w-full bg-linear-to-r from-primary/10 to-orange-500/10 border-primary/30 hover:from-primary/20 hover:to-orange-500/20 transition-all duration-300"
                   onClick={() => {
-                    openWeb3Modal();
+                    if (openWeb3Modal) {
+                      openWeb3Modal();
+                    }
                     onClose();
                   }}
                 >

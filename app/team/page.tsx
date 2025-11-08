@@ -1,19 +1,43 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { motion } from "motion/react";
 import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import { useLocale } from "@/components/locale-provider";
-import { Check, Copy } from "lucide-react";
+import { Check, Copy, UserPlus } from "lucide-react";
 import { GridPattern } from "@/components/ui/grid-pattern";
-import { useUserInfo } from "@/lib/hooks/use-contracts";
+import { useUserInfo, useRegister } from "@/lib/hooks/use-contracts";
 import { useAccount } from "wagmi";
+import { useSearchParams } from "next/navigation";
+import { isAddress } from "viem";
 
 export default function TeamPage() {
   const { t } = useLocale();
   const { address } = useAccount();
-  const { userInfo } = useUserInfo();
+  const { userInfo, refetch: refetchUserInfo } = useUserInfo();
+  const { register, isPending, isSuccess } = useRegister();
+  const searchParams = useSearchParams();
+  
+  const [referrerInput, setReferrerInput] = useState("");
+  const [showInput, setShowInput] = useState(false);
+  
+  // 检查 URL 中的 ref 参数
+  useEffect(() => {
+    const refParam = searchParams?.get("ref");
+    if (refParam && isAddress(refParam)) {
+      setReferrerInput(refParam);
+      setShowInput(true);
+    }
+  }, [searchParams]);
+  
+  // 注册成功后刷新数据
+  useEffect(() => {
+    if (isSuccess) {
+      refetchUserInfo();
+      setShowInput(false);
+    }
+  }, [isSuccess, refetchUserInfo]);
   
   // 生成邀请码(使用地址后6位)
   const [inviteCode] = useState(() => 
@@ -31,6 +55,10 @@ export default function TeamPage() {
   const teamTotal = userInfo ? Number(userInfo.userTeamSize) : 0;
   const direct = userInfo ? Number(userInfo.directReferralCount) : 0;
   const teamContribution = userInfo ? Number(userInfo.userContribution) : 0;
+  
+  // 检查是否已经绑定推荐人
+  const isRegistered = userInfo && userInfo.userReferrer !== '0x0000000000000000000000000000000000000000';
+  const currentReferrer = userInfo?.userReferrer || "";
 
   const levels = [
     { depth: 1, bgp: 800, contrib: 8 },
@@ -54,6 +82,22 @@ export default function TeamPage() {
     await navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 1200);
+  };
+  
+  const handleRegister = () => {
+    if (!referrerInput) return;
+    
+    if (!isAddress(referrerInput)) {
+      alert("无效的邀请人地址格式");
+      return;
+    }
+    
+    if (address && referrerInput.toLowerCase() === address.toLowerCase()) {
+      alert("不能邀请自己");
+      return;
+    }
+    
+    register(referrerInput);
   };
 
   return (
@@ -86,6 +130,67 @@ export default function TeamPage() {
           </motion.div>
 
           <div className="grid gap-4 mb-6">
+            {/* 邀请人绑定区域 */}
+            <div className="relative bg-card/30 backdrop-blur-md rounded-2xl p-4 border border-primary/20 overflow-hidden">
+              <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-primary/30" />
+              <div className="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-primary/30" />
+              <div className="text-sm text-muted-foreground mb-1">
+                邀请人地址
+              </div>
+              
+              {isRegistered ? (
+                // 已绑定状态
+                <div className="flex items-center gap-2">
+                  <div className="text-sm font-mono text-green-500 truncate flex-1">
+                    {currentReferrer}
+                  </div>
+                  <div className="text-xs px-2 py-1 rounded bg-green-500/20 text-green-500">
+                    已绑定
+                  </div>
+                </div>
+              ) : (
+                // 未绑定状态
+                <div className="space-y-2">
+                  {showInput ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={referrerInput}
+                        onChange={(e) => setReferrerInput(e.target.value)}
+                        placeholder="0x..."
+                        className="flex-1 px-3 py-2 bg-background/50 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      />
+                      <Button
+                        size="sm"
+                        onClick={handleRegister}
+                        disabled={isPending || !referrerInput}
+                        className="transition-all duration-200 hover:scale-105 active:scale-95"
+                      >
+                        <UserPlus className="w-4 h-4 mr-1" />
+                        {isPending ? "绑定中..." : "确认绑定"}
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <div className="text-sm text-muted-foreground flex-1">
+                        未绑定邀请人
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setShowInput(true)}
+                        className="transition-all duration-200 hover:scale-105 active:scale-95"
+                      >
+                        <UserPlus className="w-4 h-4 mr-1" />
+                        绑定邀请人
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            
+            {/* 邀请链接区域 */}
             <div className="relative bg-card/30 backdrop-blur-md rounded-2xl p-4 border border-primary/20 overflow-hidden">
               <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-primary/30" />
               <div className="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-primary/30" />

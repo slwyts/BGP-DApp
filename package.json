@@ -10,7 +10,8 @@
     "compile": "hardhat compile",
     "test": "hardhat test",
     "node": "hardhat node",
-    "deploy:local": "hardhat run scripts/deploy.ts --network localhost"
+    "deploy:local": "hardhat run scripts/deploy.ts --network localhost",
+    "time": "node scripts/time-cli.js"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^5.4.0",

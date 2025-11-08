@@ -8,11 +8,13 @@ import { useLocale } from "@/components/locale-provider";
 interface DailyRewardAnimationProps {
   open: boolean;
   onClose: () => void;
+  amount?: number; // BGP 奖励数量
 }
 
 export function DailyRewardAnimation({
   open,
   onClose,
+  amount = 1000, // 默认 1000 BGP
 }: DailyRewardAnimationProps) {
   const { t } = useLocale();
   const [isMobile, setIsMobile] = useState(false);
@@ -255,7 +257,7 @@ export function DailyRewardAnimation({
                 }
                 className="text-4xl font-bold text-primary"
               >
-                +100 BGP
+                +{amount.toLocaleString()} BGP
               </motion.p>
             </motion.div>
 

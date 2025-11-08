@@ -1,11 +1,13 @@
 "use client";
 import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { motion, useMotionValue, useTransform } from "motion/react";
-import { Gift } from "lucide-react";
+import { Gift, Sparkles } from "lucide-react";
 import { Globe } from "@/components/ui/globe";
 import { centerLatLon } from "@/components/ui/globe-utils";
 import { useLocale } from "@/components/locale-provider";
 import { useTheme } from "next-themes";
+import { useUserInfo, useInteractionStatus, useEarlyBirdStatus } from "@/lib/hooks/use-contracts";
+import { formatEther } from "viem";
 
 const AIRDROP_CONFIG = {
   circleTimeSeconds: 120,
@@ -31,9 +33,61 @@ const calculateCenterCoordinates = (
 export function GlobeAirdrop() {
   const { t } = useLocale();
   const { theme } = useTheme();
+  
+  // 获取用户真实数据
+  const { userInfo } = useUserInfo();
+  const { canInteract, nextSlotTime } = useInteractionStatus();
+  const { isEarlyBirdAvailable, earlyBirdReward } = useEarlyBirdStatus();
+  
+  // 计算本次交互将获得的 BGP 奖励
+  const nextReward = useMemo(() => {
+    const baseReward = 1000;
+    
+    // 如果没有用户数据，默认显示基础奖励
+    if (!userInfo) {
+      return {
+        total: baseReward,
+        hasBonus: false,
+        bonus: 0
+      };
+    }
+    
+    // 判断是否获得早鸟奖励的关键标志：hasClaimedEarlyBird
+    const isFirstTimeUser = userInfo.totalInteractionCount === BigInt(0) && 
+                           userInfo.userReferrer === '0x0000000000000000000000000000000000000000';
+    
+    if (!userInfo.hasClaimedEarlyBird && isFirstTimeUser && isEarlyBirdAvailable) {
+      return {
+        total: baseReward + earlyBirdReward,
+        hasBonus: true,
+        bonus: earlyBirdReward
+      };
+    }
+    
+    return {
+      total: baseReward,
+      hasBonus: false,
+      bonus: 0
+    };
+  }, [userInfo, isEarlyBirdAvailable, earlyBirdReward]);
+  
   const [countdown, setCountdown] = useState(
     AIRDROP_CONFIG.airdropIntervalSeconds,
   );
+  
+  // 格式化倒计时显示 - HH:MM:SS 格式
+  const formatCountdown = (seconds: number) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    
+    const hh = h.toString().padStart(2, '0');
+    const mm = m.toString().padStart(2, '0');
+    const ss = s.toString().padStart(2, '0');
+    
+    return `${hh}:${mm}:${ss}`;
+  };
+  
   // Plane position derives from current ring; no separate state
 
   // Track globe rotation for synchronizing the ring
@@ -191,6 +245,26 @@ export function GlobeAirdrop() {
   );
 
   useEffect(() => {
+    // 使用真实的合约冷却时间
+    if (!nextSlotTime || canInteract) {
+      setCountdown(0);
+      return;
+    }
+    
+    const updateCountdown = () => {
+      const now = Math.floor(Date.now() / 1000);
+      const remaining = Math.max(0, nextSlotTime - now);
+      setCountdown(remaining);
+    };
+    
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+    
+    return () => clearInterval(interval);
+  }, [nextSlotTime, canInteract]);
+
+  // 原有的空投动画效果保持不变
+  useEffect(() => {
     const now = Date.now();
 
     nextAirdropAtRef.current =
@@ -201,7 +275,8 @@ export function GlobeAirdrop() {
       const nowTick = Date.now();
       const msLeft = nextAirdropAtRef.current - nowTick;
 
-      setCountdown(Math.max(0, Math.ceil(msLeft / 1000)));
+      // 移除原来的倒计时更新，改用上面的真实数据
+      // setCountdown(Math.max(0, Math.ceil(msLeft / 1000)));
 
       if (msLeft <= 0) {
         do {
@@ -496,22 +571,52 @@ export function GlobeAirdrop() {
         <div className="inline-flex items-center gap-2 bg-card rounded-full px-4 py-2 border border-border">
           <Gift className="w-4 h-4 text-primary" />
           <span className="text-sm text-muted-foreground">
-            {t("nextAirdrop")}:
+            {countdown > 0 ? t("nextAirdrop") : t("canClaim")}:
           </span>
-          <span className="text-lg font-bold text-primary">{countdown}s</span>
+          <span className="text-lg font-bold text-primary">{formatCountdown(countdown)}</span>
         </div>
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-2">
         <div className="bg-card rounded-xl p-3 border border-border text-left backdrop-blur-sm">
-          <div className="text-xs text-muted-foreground">{t("airdrops")}</div>
+          <div className="text-xs text-muted-foreground">{t("claimedCount")}</div>
           <div className="text-2xl font-bold text-primary mt-1">
-            {droppedMarkers.length}
+            {userInfo ? Number(userInfo.totalInteractionCount) : 0}
           </div>
         </div>
-        <div className="bg-card rounded-xl p-3 border border-border text-left backdrop-blur-sm">
-          <div className="text-xs text-muted-foreground">BGP</div>
-          <div className="text-2xl font-bold text-primary mt-1">1,250</div>
+        <div className="bg-card rounded-xl p-3 border border-border text-left backdrop-blur-sm relative overflow-hidden">
+          {nextReward.hasBonus && (
+            <motion.div
+              className="absolute inset-0 bg-linear-to-r from-orange-500/10 via-primary/10 to-transparent"
+              animate={{
+                opacity: [0.3, 0.6, 0.3],
+              }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+            />
+          )}
+          <div className="relative z-10">
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              {t("nextReward")}
+              {nextReward.hasBonus && (
+                <Sparkles className="w-3 h-3 text-orange-500" />
+              )}
+            </div>
+            <div className="flex items-baseline gap-1 mt-1">
+              <div className="text-2xl font-bold text-primary">
+                {nextReward.total.toLocaleString()}
+              </div>
+              <div className="text-xs text-muted-foreground">BGP</div>
+            </div>
+            {nextReward.hasBonus && (
+              <div className="text-[10px] text-orange-500 font-medium mt-0.5">
+                +{nextReward.bonus.toLocaleString()} {t("earlyBirdBonus")}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

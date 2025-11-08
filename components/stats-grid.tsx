@@ -52,10 +52,18 @@ export function StatsGrid() {
   // 计算活跃天数: 每天最多2次交互,总交互数/2 = 活跃天数(向上取整)
   const activeDays = totalInteractionCount > 0 ? Math.ceil(totalInteractionCount / 2) : 0;
   
-  // 计算总 BGP 奖励 = 交互奖励 + 推荐奖励 + 等级奖励
-  const interactionBGP = totalInteractionCount * 2000; // DAILY_BGP_REWARD
+  // 交互奖励：只和点击空投按钮有关（包含早鸟奖励）
+  const interactionBGP = userInfo 
+    ? (Number(userInfo.userPendingInteractionBGP) + Number(userInfo.userTotalInteractionBGPWithdrawn)) / 1e18
+    : 0;
+  
+  // 推荐奖励：邀请用户获得的 BGP
   const referralBGP = totalReferralRewards > 0 ? totalReferralRewards / 1e18 : 0;
+  
+  // 等级奖励：达到贡献值等级获得的 BGP
   const levelBGP = totalLevelBGP > 0 ? totalLevelBGP / 1e18 : 0;
+  
+  // 累计奖励 = 交互奖励 + 推荐奖励 + 等级奖励
   const totalBGP = interactionBGP + referralBGP + levelBGP;
 
   const personalStats = [

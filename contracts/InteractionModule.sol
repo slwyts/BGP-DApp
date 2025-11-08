@@ -21,7 +21,7 @@ abstract contract InteractionModule is Ownable {
     
     // 交互配置
     uint256 public constant INTERACTION_COST = 0.00015 ether; // 0.6 USDT (ETH @ $4000)
-    uint256 public constant DAILY_BGP_REWARD = 2000 * 10**18;
+    uint256 public constant DAILY_BGP_REWARD = 1000 * 10**18; // 每次1000 BGP
     uint256 public constant SLOT_DURATION = 12 hours;
     
     // 用户交互数据

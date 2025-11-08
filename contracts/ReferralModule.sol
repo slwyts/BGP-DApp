@@ -12,8 +12,9 @@ import "./BGPToken.sol";
  * - 按层级分配 BGP 和贡献值
  */
 abstract contract ReferralModule is Ownable {
-    // 需要主合约提供这个函数
+    // 需要主合约提供这些函数
     function _getBGPToken() internal view virtual returns (BGPToken);
+    function _addPendingInteractionBGP(address user, uint256 amount) internal virtual;
     
     // 推荐奖励配置
     struct ReferralReward {
@@ -33,7 +34,14 @@ abstract contract ReferralModule is Ownable {
     mapping(address => uint256) public totalReferralRewards; // 总推荐奖励 (BGP, 18位精度)
     mapping(address => uint256) public teamSize; // 团队总人数（包括所有代）
     
+    // 早鸟奖励配置（前1万名注册用户）
+    uint256 public totalRegistered; // 总注册人数
+    uint256 public constant EARLY_BIRD_LIMIT = 10000; // 前1万名
+    uint256 public constant EARLY_BIRD_REWARD = 5000 * 10**18; // 5000 BGP
+    mapping(address => bool) public hasClaimedEarlyBird; // 是否已领取早鸟奖励
+    
     event Registered(address indexed user, address indexed referrer);
+    event EarlyBirdRewardClaimed(address indexed user, uint256 amount, uint256 registrationNumber);
     event ReferralRewardDistributed(
         address indexed referrer,
         address indexed user,
@@ -72,6 +80,16 @@ abstract contract ReferralModule is Ownable {
         for (uint8 i = 0; i < 15 && current != address(0); i++) {
             teamSize[current]++;
             current = referrer[current];
+        }
+        
+        // 增加注册人数
+        totalRegistered++;
+        
+        // 前1万名发放5000 BGP早鸟奖励（累积到待提取）
+        if (totalRegistered <= EARLY_BIRD_LIMIT) {
+            hasClaimedEarlyBird[msg.sender] = true;
+            _addPendingInteractionBGP(msg.sender, EARLY_BIRD_REWARD);
+            emit EarlyBirdRewardClaimed(msg.sender, EARLY_BIRD_REWARD, totalRegistered);
         }
         
         emit Registered(msg.sender, _referrer);

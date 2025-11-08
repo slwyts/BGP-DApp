@@ -5,11 +5,17 @@ import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LocaleToggle } from "@/components/locale-toggle";
-import { ConnectButton } from "@/components/connect-button";
+import dynamic from "next/dynamic";
 import { useState } from "react";
 import { Sidebar } from "@/components/sidebar";
 import Image from "next/image";
 import Link from "next/link";
+
+// 使用 dynamic 导入禁用 SSR
+const ConnectButton = dynamic(
+  () => import("@/components/connect-button").then((mod) => ({ default: mod.ConnectButton })),
+  { ssr: false }
+);
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false);

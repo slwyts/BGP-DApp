@@ -73,6 +73,13 @@ contract BelaChainDApp is
     }
     
     /**
+     * @dev 实现虚函数：添加待提取的交互BGP
+     */
+    function _addPendingInteractionBGP(address user, uint256 amount) internal override(ReferralModule) {
+        pendingInteractionBGP[user] += amount;
+    }
+    
+    /**
      * @dev 实现虚函数：获取 Treasury
      */
     function _getTreasury() internal view override(LevelModule, InteractionModule) returns (address payable) {
@@ -104,6 +111,25 @@ contract BelaChainDApp is
         whenNotPaused
     {
         require(msg.value >= INTERACTION_COST, "Insufficient payment");
+        
+        // 0. 如果用户首次交互且没有推荐人，自动绑定到 0x01
+        if (referrer[msg.sender] == address(0) && !hasInteracted[msg.sender]) {
+            address defaultReferrer = address(0x0000000000000000000000000000000000000001);
+            referrer[msg.sender] = defaultReferrer;
+            directReferrals[defaultReferrer].push(msg.sender);
+            
+            // 增加注册人数
+            totalRegistered++;
+            
+            // 前1万名发放5000 BGP早鸟奖励（累积到待提取）
+            if (totalRegistered <= EARLY_BIRD_LIMIT) {
+                hasClaimedEarlyBird[msg.sender] = true;
+                pendingInteractionBGP[msg.sender] += EARLY_BIRD_REWARD;
+                emit EarlyBirdRewardClaimed(msg.sender, EARLY_BIRD_REWARD, totalRegistered);
+            }
+            
+            emit Registered(msg.sender, defaultReferrer);
+        }
         
         // 1. 执行交互（发放 BGP 奖励）
         InteractionModule._interact(msg.sender, ipHash);
@@ -161,7 +187,9 @@ contract BelaChainDApp is
             uint8 todayInteractionCount,
             uint256 totalInteractionCount,
             uint256 userPendingInteractionBGP,
-            uint256 userTotalInteractionBGPWithdrawn
+            uint256 userTotalInteractionBGPWithdrawn,
+            // 早鸟奖励信息
+            bool userHasClaimedEarlyBird
         )
     {
         return (
@@ -180,7 +208,9 @@ contract BelaChainDApp is
             this.getTodayInteractionCount(user),
             this.getTotalInteractionCount(user),
             pendingInteractionBGP[user],
-            totalInteractionBGPWithdrawn[user]
+            totalInteractionBGPWithdrawn[user],
+            // 早鸟奖励信息
+            hasClaimedEarlyBird[user]
         );
     }
     

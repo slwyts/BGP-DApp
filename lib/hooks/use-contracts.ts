@@ -42,6 +42,7 @@ export function useUserInfo() {
     totalInteractionCount: (data as any[])[10],
     userPendingInteractionBGP: (data as any[])[11],
     userTotalInteractionBGPWithdrawn: (data as any[])[12],
+    hasClaimedEarlyBird: (data as any[])[13],
   } : undefined
 
   return {
@@ -74,6 +75,52 @@ export function useBGPBalance() {
     balanceRaw: data as bigint | undefined,
     isLoading,
     refetch,
+  }
+}
+
+/**
+ * 获取早鸟奖励状态
+ */
+export function useEarlyBirdStatus() {
+  const { chainId } = useAccount()
+  const addresses = chainId ? getContractAddresses() : null
+
+  const { data: totalRegistered } = useReadContract({
+    address: addresses?.dapp as `0x${string}`,
+    abi: DAppABI,
+    functionName: 'totalRegistered',
+    query: {
+      enabled: !!addresses,
+    },
+  })
+
+  const { data: earlyBirdLimit } = useReadContract({
+    address: addresses?.dapp as `0x${string}`,
+    abi: DAppABI,
+    functionName: 'EARLY_BIRD_LIMIT',
+    query: {
+      enabled: !!addresses,
+    },
+  })
+
+  const { data: earlyBirdReward } = useReadContract({
+    address: addresses?.dapp as `0x${string}`,
+    abi: DAppABI,
+    functionName: 'EARLY_BIRD_REWARD',
+    query: {
+      enabled: !!addresses,
+    },
+  })
+
+  const totalRegisteredNum = totalRegistered !== undefined ? Number(totalRegistered) : null;
+  const earlyBirdLimitNum = earlyBirdLimit !== undefined ? Number(earlyBirdLimit) : 10000;
+  const earlyBirdRewardNum = earlyBirdReward !== undefined ? Number(formatEther(earlyBirdReward as bigint)) : 5000;
+
+  return {
+    totalRegistered: totalRegisteredNum ?? 0,
+    earlyBirdLimit: earlyBirdLimitNum,
+    earlyBirdReward: earlyBirdRewardNum,
+    isEarlyBirdAvailable: totalRegisteredNum !== null && totalRegisteredNum < earlyBirdLimitNum,
   }
 }
 

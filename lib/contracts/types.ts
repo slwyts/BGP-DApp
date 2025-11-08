@@ -19,6 +19,8 @@ export interface UserInfo {
   totalInteractionCount: bigint;
   userPendingInteractionBGP: bigint;
   userTotalInteractionBGPWithdrawn: bigint;
+  // 早鸟奖励信息
+  hasClaimedEarlyBird: boolean;
 }
 
 export interface GlobalStats {
