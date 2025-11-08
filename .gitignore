@@ -21,7 +21,7 @@ yarn-error.log*
 cache
 artifacts
 typechain-types
-.env
+.env.hardhat
 coverage.json
 .openzeppelin
 deployments

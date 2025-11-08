@@ -1,6 +1,7 @@
 import type React from "react";
 import type { Metadata } from "next";
 import "./globals.css";
+import { Suspense } from "react";
 
 import { ThemeProvider } from "@/components/theme-provider";
 import { LocaleProvider } from "@/components/locale-provider";
@@ -58,7 +59,9 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             <LocaleProvider>
-              <ReferralHandler />
+              <Suspense fallback={null}>
+                <ReferralHandler />
+              </Suspense>
               {children}
             </LocaleProvider>
           </ThemeProvider>
