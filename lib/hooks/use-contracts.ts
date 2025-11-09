@@ -161,7 +161,7 @@ export function useRegister() {
  * 每日交互
  */
 export function useInteract() {
-  const { chainId } = useAccount()
+  const { chainId, isConnected } = useAccount()
   const addresses = chainId ? getContractAddresses() : null
   const { writeContract, data: hash, isPending, error } = useWriteContract()
 
@@ -169,9 +169,18 @@ export function useInteract() {
     hash,
   })
 
-  const interact = async (ipHash: string) => {
-    if (!addresses) return
+  const interact = (ipHash: string) => {  // 移除 async，这是同步函数
+    if (!isConnected) {
+      console.error('❌ 钱包未连接')
+      return
+    }
     
+    if (!addresses) {
+      console.error('❌ 无法获取合约地址')
+      return
+    }
+    
+    console.log('✅ 发起交互:', { addresses, ipHash })
     writeContract({
       address: addresses.dapp as `0x${string}`,
       abi: DAppABI,

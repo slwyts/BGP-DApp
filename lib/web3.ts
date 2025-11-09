@@ -43,9 +43,9 @@ export const config = defaultWagmiConfig({
   chains,
   projectId,
   metadata,
-  ssr: true,
+  ssr: true,  // 保持 true，与 output: export 兼容
   storage: createStorage({
-    storage: cookieStorage,
+    storage: cookieStorage,  // 使用标准的 cookieStorage
   }),
   enableWalletConnect: true,
   enableInjected: true,

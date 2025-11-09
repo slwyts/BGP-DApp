@@ -44,10 +44,19 @@ export default function TeamPage() {
     address ? address.slice(-6).toUpperCase() : "000000"
   );
   
+  // 客户端挂载状态
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  
   const inviteLink = useMemo(
     () =>
-      `${typeof window !== "undefined" ? window.location.origin : ""}/?ref=${address || "0x0"}`,
-    [address],
+      mounted && typeof window !== "undefined"
+        ? `${window.location.origin}/?ref=${address || "0x0"}`
+        : `/?ref=${address || "0x0"}`,
+    [address, mounted],
   );
   const [copied, setCopied] = useState(false);
 

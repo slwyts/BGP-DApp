@@ -153,7 +153,10 @@ export default function HomePage() {
   };
 
   const onInteract = async () => {
-    if (!canInteract || isPending || isConfirming) return;
+    if (!canInteract || isPending || isConfirming) {
+      console.log('⏸️ 按钮被禁用:', { canInteract, isPending, isConfirming })
+      return
+    }
     
     // 在交互前计算奖励并保存
     const reward = calculateReward();
@@ -172,9 +175,10 @@ export default function HomePage() {
     try {
       // 生成 IP hash
       const ipHash = await hashIP();
-      await interact(ipHash);
+      console.log('✅ IP Hash 生成:', ipHash)
+      interact(ipHash);  // 同步调用，不需要 await
     } catch (error) {
-      console.error("Interaction failed:", error);
+      console.error("❌ 交互失败:", error);
     }
   };
 
