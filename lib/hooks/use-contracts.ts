@@ -136,14 +136,14 @@ export function useRegister() {
     hash,
   })
 
-  const register = (referrer: string) => {
+  const register = (referrer: string, ipHash: string) => {
     if (!addresses) return
-    
+
     writeContract({
       address: addresses.dapp as `0x${string}`,
       abi: DAppABI,
       functionName: 'register',
-      args: [referrer],
+      args: [referrer, ipHash],
     })
   }
 
@@ -169,23 +169,23 @@ export function useInteract() {
     hash,
   })
 
-  const interact = (ipHash: string) => {  // 移除 async，这是同步函数
+  const interact = () => {  // 移除 ipHash 参数
     if (!isConnected) {
       console.error('❌ 钱包未连接')
       return
     }
-    
+
     if (!addresses) {
       console.error('❌ 无法获取合约地址')
       return
     }
-    
-    console.log('✅ 发起交互:', { addresses, ipHash })
+
+    console.log('✅ 发起交互:', { addresses })
     writeContract({
       address: addresses.dapp as `0x${string}`,
       abi: DAppABI,
       functionName: 'interact',
-      args: [ipHash],
+      args: [],  // 不再传递 ipHash
       value: parseEther('0.00015'), // 0.6 USDT (ETH @ $4000)
     })
   }

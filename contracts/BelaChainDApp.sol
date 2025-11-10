@@ -96,54 +96,39 @@ contract BelaChainDApp is
     /**
      * @dev 实现虚函数：获取 AntiSybil 合约
      */
-    function _getAntiSybil() internal view override(InteractionModule) returns (IAntiSybil) {
+    function _getAntiSybil() internal view override(ReferralModule) returns (IAntiSybil) {
         return antiSybilContract;
     }
     
     /**
      * @dev 用户交互主函数
-     * @param ipHash IP 地址的哈希值
      */
-    function interact(bytes32 ipHash)
+    function interact()
         external
         payable
         nonReentrant
         whenNotPaused
     {
         require(msg.value >= INTERACTION_COST, "Insufficient payment");
-        
-        // 0. 如果用户首次交互且没有推荐人，自动绑定到 0x01
-        if (referrer[msg.sender] == address(0) && !hasInteracted[msg.sender]) {
-            address defaultReferrer = address(0x0000000000000000000000000000000000000001);
-            referrer[msg.sender] = defaultReferrer;
-            directReferrals[defaultReferrer].push(msg.sender);
-            
-            // 增加注册人数
-            totalRegistered++;
-            
-            // 前1万名发放5000 BGP早鸟奖励（累积到待提取）
-            if (totalRegistered <= EARLY_BIRD_LIMIT) {
-                hasClaimedEarlyBird[msg.sender] = true;
-                pendingInteractionBGP[msg.sender] += EARLY_BIRD_REWARD;
-                emit EarlyBirdRewardClaimed(msg.sender, EARLY_BIRD_REWARD, totalRegistered);
-            }
-            
-            emit Registered(msg.sender, defaultReferrer);
+
+        // 0. 检查用户是否已绑定推荐人（owner 除外）
+        if (msg.sender != owner()) {
+            require(referrer[msg.sender] != address(0), "Must register with a referrer first");
         }
-        
+
         // 1. 执行交互（发放 BGP 奖励）
-        InteractionModule._interact(msg.sender, ipHash);
-        
+        InteractionModule._interact(msg.sender);
+
         // 2. 分发推荐奖励（如果用户有推荐人）
         if (referrer[msg.sender] != address(0)) {
             ReferralModule._distributeReferralRewards(msg.sender);
         }
-        
+
         // 3. 检查并更新等级（如果启用）
         if (autoLevelCheck) {
             LevelModule._updateUserLevel(msg.sender, contribution[msg.sender]);
         }
-        
+
         // 4. 转账 gas 费到 treasury
         (bool success, ) = treasury.call{value: msg.value}("");
         require(success, "Transfer failed");

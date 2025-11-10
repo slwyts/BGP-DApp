@@ -12,7 +12,6 @@ import { DailyRewardAnimation } from "@/components/daily-reward-animation";
 import { StatsGrid } from "@/components/stats-grid";
 import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { useInteractionStatus, useInteract, useUserInfo, useEarlyBirdStatus, useGlobalStats } from "@/lib/hooks/use-contracts";
-import { hashIP } from "@/lib/ip-hash";
 import { getContractAddresses } from "@/lib/contracts/addresses";
 import { useWalletClient } from "wagmi";
 
@@ -157,7 +156,7 @@ export default function HomePage() {
       console.log('⏸️ 按钮被禁用:', { canInteract, isPending, isConfirming })
       return
     }
-    
+
     // 在交互前计算奖励并保存
     const reward = calculateReward();
     console.log('🎁 本次交互奖励计算:', {
@@ -171,12 +170,10 @@ export default function HomePage() {
       earlyBirdReward
     });
     setEarnedReward(reward);
-    
+
     try {
-      // 生成 IP hash
-      const ipHash = await hashIP();
-      console.log('✅ IP Hash 生成:', ipHash)
-      interact(ipHash);  // 同步调用，不需要 await
+      // 不再需要生成 IP hash
+      interact();  // 直接调用，不传 ipHash
     } catch (error) {
       console.error("❌ 交互失败:", error);
     }

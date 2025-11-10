@@ -3,6 +3,7 @@ pragma solidity ^0.8.30;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./BGPToken.sol";
+import "./AntiSybil.sol";
 
 /**
  * @title ReferralModule
@@ -15,6 +16,7 @@ abstract contract ReferralModule is Ownable {
     // 需要主合约提供这些函数
     function _getBGPToken() internal view virtual returns (BGPToken);
     function _addPendingInteractionBGP(address user, uint256 amount) internal virtual;
+    function _getAntiSybil() internal view virtual returns (IAntiSybil);
     
     // 推荐奖励配置
     struct ReferralReward {
@@ -66,32 +68,48 @@ abstract contract ReferralModule is Ownable {
     /**
      * @dev 用户注册并绑定推荐人
      * @param _referrer 推荐人地址
+     * @param ipHash IP 地址的哈希值
      */
-    function register(address _referrer) external {
+    function register(address _referrer, bytes32 ipHash) external {
         require(referrer[msg.sender] == address(0), "Already registered");
         require(_referrer != msg.sender, "Cannot refer yourself");
         require(_referrer != address(0), "Invalid referrer");
-        
+
+        // 检查推荐人是否有资格（必须已绑定推荐人，owner 除外）
+        if (_referrer != owner()) {
+            require(referrer[_referrer] != address(0), "Referrer must be registered first");
+        }
+
+        // 反女巫攻击检查（通过 AntiSybil 合约）
+        IAntiSybil antiSybil = _getAntiSybil();
+        require(!antiSybil.isBlacklisted(msg.sender), "Address is blacklisted");
+
+        // 在 AntiSybil 中注册地址
+        antiSybil.registerAddress(msg.sender, ipHash);
+
         referrer[msg.sender] = _referrer;
         directReferrals[_referrer].push(msg.sender);
-        
+
         // 更新上级的团队人数（递归向上）
         address current = _referrer;
         for (uint8 i = 0; i < 15 && current != address(0); i++) {
             teamSize[current]++;
             current = referrer[current];
         }
-        
+
         // 增加注册人数
         totalRegistered++;
-        
-        // 前1万名发放5000 BGP早鸟奖励（累积到待提取）
+
+        // 前1万名发放5000 BGP早鸟奖励（直接转账）
         if (totalRegistered <= EARLY_BIRD_LIMIT) {
             hasClaimedEarlyBird[msg.sender] = true;
-            _addPendingInteractionBGP(msg.sender, EARLY_BIRD_REWARD);
+            require(
+                _getBGPToken().transfer(msg.sender, EARLY_BIRD_REWARD),
+                "Early bird reward transfer failed"
+            );
             emit EarlyBirdRewardClaimed(msg.sender, EARLY_BIRD_REWARD, totalRegistered);
         }
-        
+
         emit Registered(msg.sender, _referrer);
     }
     

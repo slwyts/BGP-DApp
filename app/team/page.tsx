@@ -11,6 +11,7 @@ import { useUserInfo, useRegister } from "@/lib/hooks/use-contracts";
 import { useAccount } from "wagmi";
 import { useSearchParams } from "next/navigation";
 import { isAddress } from "viem";
+import { hashIP } from "@/lib/ip-hash";
 
 export default function TeamPage() {
   const { t } = useLocale();
@@ -93,20 +94,28 @@ export default function TeamPage() {
     setTimeout(() => setCopied(false), 1200);
   };
   
-  const handleRegister = () => {
+  const handleRegister = async () => {
     if (!referrerInput) return;
-    
+
     if (!isAddress(referrerInput)) {
       alert("无效的邀请人地址格式");
       return;
     }
-    
+
     if (address && referrerInput.toLowerCase() === address.toLowerCase()) {
       alert("不能邀请自己");
       return;
     }
-    
-    register(referrerInput);
+
+    try {
+      // 生成 IP hash
+      const ipHash = await hashIP();
+      console.log('✅ IP Hash 生成:', ipHash);
+      register(referrerInput, ipHash);
+    } catch (error) {
+      console.error("❌ 注册失败:", error);
+      alert("注册失败，请重试");
+    }
   };
 
   return (

@@ -3,21 +3,18 @@ pragma solidity ^0.8.30;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./BGPToken.sol";
-import "./AntiSybil.sol";
 
 /**
  * @title InteractionModule
  * @dev 每日交互模块
  * - 每天2次交互机会（00:00 和 12:00 UTC）
- * - 每次交互需支付 0.6 ETH
+ * - 每次交互需支付 0.6U ETH
  * - 每次交互奖励 2000 BGP
- * - 反日蚀攻击通过 AntiSybil 合约实现
  */
 abstract contract InteractionModule is Ownable {
     // 需要主合约提供这些函数
     function _getBGPToken() internal view virtual returns (BGPToken);
     function _getTreasury() internal view virtual returns (address payable);
-    function _getAntiSybil() internal view virtual returns (IAntiSybil);
     
     // 交互配置
     uint256 public constant INTERACTION_COST = 0.00015 ether; // 0.6 USDT (ETH @ $4000)
@@ -59,23 +56,13 @@ abstract contract InteractionModule is Ownable {
     /**
      * @dev 内部交互函数（被主合约调用）
      * @param user 交互用户
-     * @param ipHash IP 地址哈希
      */
-    function _interact(address user, bytes32 ipHash) internal {
-        // 通过 AntiSybil 合约检查黑名单并注册地址
-        IAntiSybil antiSybil = _getAntiSybil();
-        require(!antiSybil.isBlacklisted(user), "Address is blacklisted");
-        
-        // 如果是首次交互，在 AntiSybil 中注册
-        if (!hasInteracted[user]) {
-            antiSybil.registerAddress(user, ipHash);
-        }
-        
+    function _interact(address user) internal {
         // 获取当前时段
         (uint256 currentDay, uint8 currentSlot) = _getCurrentSlot();
-        
+
         DailyInteraction storage interaction = userInteractions[user];
-        
+
         // 检查是否是新的一天
         if (interaction.lastInteractionDay < currentDay) {
             interaction.lastInteractionDay = currentDay;
@@ -83,10 +70,10 @@ abstract contract InteractionModule is Ownable {
             interaction.slot1Time = 0;
             interaction.slot2Time = 0;
         }
-        
+
         // 验证交互次数
         require(interaction.todayCount < 2, "Daily limit reached");
-        
+
         // 验证时段
         if (currentSlot == 1) {
             require(interaction.slot1Time == 0, "Slot 1 already claimed");
@@ -95,21 +82,21 @@ abstract contract InteractionModule is Ownable {
             require(interaction.slot2Time == 0, "Slot 2 already claimed");
             interaction.slot2Time = block.timestamp;
         }
-        
+
         interaction.todayCount++;
         interaction.totalInteractions++;
-        
+
         // 统计新用户
         if (!hasInteracted[user]) {
             hasInteracted[user] = true;
             totalParticipants++;
         }
-        
+
         totalInteractions++;
-        
+
         // 累积 BGP 奖励（不立即发放）
         pendingInteractionBGP[user] += DAILY_BGP_REWARD;
-        
+
         emit Interacted(
             user,
             DAILY_BGP_REWARD,
