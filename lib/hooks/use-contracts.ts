@@ -442,3 +442,31 @@ export function useLevelClaimStatus() {
   }
 }
 
+/**
+ * 获取直推列表及注册时间
+ */
+export function useDirectReferralsWithTime() {
+  const { address, chainId } = useAccount()
+  const addresses = chainId ? getContractAddresses() : null
+
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: addresses?.dapp as `0x${string}`,
+    abi: DAppABI,
+    functionName: 'getDirectReferralsWithTime',
+    args: [address],
+    query: {
+      enabled: !!address && !!addresses,
+    },
+  })
+
+  const result = data as [readonly `0x${string}`[], readonly bigint[]] | undefined
+
+  return {
+    addresses: result?.[0] || [],
+    timestamps: result?.[1] || [],
+    isLoading,
+    error,
+    refetch,
+  }
+}
+

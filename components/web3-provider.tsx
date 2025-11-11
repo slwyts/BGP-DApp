@@ -46,8 +46,33 @@ export function Web3Provider({
           '--w3m-font-family': 'inherit', // 使用网站字体
         }
       })
+      console.log('✅ Web3Modal 已创建')
     }
+
+    // 监听自定义事件来打开 Web3Modal
+    const handleOpenModal = () => {
+      console.log('📢 收到 w3m-open 事件')
+      if (web3modal) {
+        console.log('🚀 正在打开 Web3Modal...')
+        web3modal.open()
+      } else {
+        console.log('❌ Web3Modal 实例不存在')
+      }
+    }
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('w3m-open', handleOpenModal)
+      console.log('✅ w3m-open 事件监听器已添加')
+    }
+
     setMounted(true)
+
+    // 清理函数
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('w3m-open', handleOpenModal)
+      }
+    }
   }, [])
 
   return (

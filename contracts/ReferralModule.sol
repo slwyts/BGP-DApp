@@ -31,6 +31,7 @@ abstract contract ReferralModule is Ownable {
     mapping(address => address) public referrer; // 用户 -> 推荐人
     mapping(address => address[]) public directReferrals; // 直推列表
     mapping(address => uint256) public contribution; // 贡献值（整数）
+    mapping(address => uint256) public registeredAt; // 用户注册时间戳
     
     // 统计数据
     mapping(address => uint256) public totalReferralRewards; // 总推荐奖励 (BGP, 18位精度)
@@ -89,6 +90,7 @@ abstract contract ReferralModule is Ownable {
 
         referrer[msg.sender] = _referrer;
         directReferrals[_referrer].push(msg.sender);
+        registeredAt[msg.sender] = block.timestamp; // 记录注册时间
 
         // 更新上级的团队人数（递归向上）
         address current = _referrer;
@@ -166,6 +168,24 @@ abstract contract ReferralModule is Ownable {
      */
     function getDirectReferrals(address user) external view returns (address[] memory) {
         return directReferrals[user];
+    }
+
+    /**
+     * @dev 获取用户的直推列表及注册时间
+     */
+    function getDirectReferralsWithTime(address user)
+        external
+        view
+        returns (address[] memory addresses, uint256[] memory timestamps)
+    {
+        address[] memory refs = directReferrals[user];
+        uint256[] memory times = new uint256[](refs.length);
+
+        for (uint256 i = 0; i < refs.length; i++) {
+            times[i] = registeredAt[refs[i]];
+        }
+
+        return (refs, times);
     }
     
     /**

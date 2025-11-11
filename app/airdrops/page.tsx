@@ -11,7 +11,7 @@ import { ClaimAnimationOverlay } from "@/components/claim-animation-overlay";
 import { DailyRewardAnimation } from "@/components/daily-reward-animation";
 import { StatsGrid } from "@/components/stats-grid";
 import { useEffect, useState, useRef, useMemo, useCallback } from "react";
-import { useInteractionStatus, useInteract, useUserInfo, useEarlyBirdStatus, useGlobalStats } from "@/lib/hooks/use-contracts";
+import { useInteractionStatus, useInteract, useUserInfo, useGlobalStats } from "@/lib/hooks/use-contracts";
 import { getContractAddresses } from "@/lib/contracts/addresses";
 import { useWalletClient } from "wagmi";
 
@@ -26,34 +26,19 @@ export default function HomePage() {
   const [showDailyRewardAnim, setShowDailyRewardAnim] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [hydrated, setHydrated] = useState(false);
-  const [earnedReward, setEarnedReward] = useState(1000); // 保存本次获得的奖励
+  const [earnedReward, setEarnedReward] = useState(2000); // 保存本次获得的奖励
 
   // 使用真实合约数据
   const { canInteract, nextSlotTime, todayCount, refetch: refetchStatus } = useInteractionStatus();
   const { interact, isPending, isConfirming, isSuccess } = useInteract();
   const { data: walletClient } = useWalletClient();
-  const { userInfo, refetch: refetchUserInfo } = useUserInfo();
-  const { isEarlyBirdAvailable, earlyBirdReward } = useEarlyBirdStatus();
+  const { refetch: refetchUserInfo } = useUserInfo();
   const { refetch: refetchGlobalStats } = useGlobalStats();
 
-  // 计算本次交互将获得的 BGP 奖励
+  // 计算本次交互将获得的 BGP 奖励（仅空投奖励）
   const calculateReward = useCallback(() => {
-    const baseReward = 1000; // 基础交互奖励
-    
-    // 如果没有用户数据，默认返回基础奖励
-    if (!userInfo) return baseReward;
-    
-    // 判断是否获得早鸟奖励的关键标志：hasClaimedEarlyBird
-    // 如果还没领过早鸟奖励，并且是首次交互（或者没有推荐人），就给早鸟奖励
-    const isFirstTimeUser = userInfo.totalInteractionCount === BigInt(0) && 
-                           userInfo.userReferrer === '0x0000000000000000000000000000000000000000';
-    
-    if (!userInfo.hasClaimedEarlyBird && isFirstTimeUser && isEarlyBirdAvailable) {
-      return baseReward + earlyBirdReward; // 6000 BGP
-    }
-    
-    return baseReward; // 1000 BGP
-  }, [userInfo, isEarlyBirdAvailable, earlyBirdReward]);
+    return 2000; // 空投奖励固定为 2000 BGP
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => setHydrated(true), 0);
@@ -159,16 +144,7 @@ export default function HomePage() {
 
     // 在交互前计算奖励并保存
     const reward = calculateReward();
-    console.log('🎁 本次交互奖励计算:', {
-      reward,
-      userInfo: userInfo ? {
-        totalInteractionCount: Number(userInfo.totalInteractionCount),
-        hasClaimedEarlyBird: userInfo.hasClaimedEarlyBird,
-        userReferrer: userInfo.userReferrer,
-      } : 'null',
-      isEarlyBirdAvailable,
-      earlyBirdReward
-    });
+    console.log('🎁 本次交互奖励:', reward);
     setEarnedReward(reward);
 
     try {

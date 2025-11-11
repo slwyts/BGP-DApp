@@ -44,11 +44,10 @@ export function StatsGrid() {
   const totalInteractionCount = userInfo ? Number(userInfo.totalInteractionCount) : 0;
   const totalReferralRewards = userInfo ? Number(userInfo.userTotalReferralRewards) : 0;
   const totalLevelBGP = userInfo ? Number(userInfo.userTotalLevelBGP) : 0;
-  const totalUSDT = userInfo 
+  const totalUSDT = userInfo
     ? (Number(userInfo.userTotalUSDTWithdrawn) + Number(userInfo.userPendingUSDT)) / 1e6
     : 0;
-  const currentLevel = userInfo ? Number(userInfo.currentLevel) : 0;
-  
+
   // 计算活跃天数: 每天最多2次交互,总交互数/2 = 活跃天数(向上取整)
   const activeDays = totalInteractionCount > 0 ? Math.ceil(totalInteractionCount / 2) : 0;
   
@@ -86,10 +85,18 @@ export function StatsGrid() {
     {
       icon: DollarSign,
       label: t("totalInteractionRewards"),
-      value: interactionBGP.toLocaleString(),
+      value: Math.floor(interactionBGP).toLocaleString(),
       unit: "BGP",
       gradient: "from-primary to-orange-500",
       bgGradient: "from-primary/10 to-orange-500/10",
+    },
+    {
+      icon: Users,
+      label: t("referralRewards"),
+      value: Math.floor(referralBGP).toLocaleString(),
+      unit: "BGP",
+      gradient: "from-primary to-orange-400",
+      bgGradient: "from-primary/10 to-orange-400/10",
     },
     {
       icon: Award,
@@ -101,16 +108,8 @@ export function StatsGrid() {
     },
     {
       icon: TrendingUp,
-      label: t("level"),
-      value: `V${currentLevel}`,
-      unit: "",
-      gradient: "from-primary to-orange-400",
-      bgGradient: "from-primary/10 to-orange-400/10",
-    },
-    {
-      icon: DollarSign,
-      label: t("cumulativeRewards"),
-      value: !isNaN(totalBGP) ? Math.floor(totalBGP).toLocaleString() : "0",
+      label: t("levelAchievementBGPRewards"),
+      value: Math.floor(levelBGP).toLocaleString(),
       unit: "BGP",
       gradient: "from-orange-600 to-primary",
       bgGradient: "from-orange-600/10 to-primary/10",
@@ -124,14 +123,14 @@ export function StatsGrid() {
       transition={{ delay: 0.6 }}
       className="space-y-6"
     >
-      {/* Global Data Section */}
+      {/* Personal Data Section */}
       <div>
         <h2 className="text-2xl font-bold text-foreground mb-4 flex items-center gap-2">
-          <Globe className="w-6 h-6 text-primary" />
-          {t("globalData")}
+          <User className="w-6 h-6 text-primary" />
+          {t("personalData")}
         </h2>
         <div className="grid grid-cols-2 gap-4">
-          {globalStats.map((stat, index) => (
+          {personalStats.map((stat, index) => (
             <motion.div
               key={stat.label}
               initial={{ opacity: 0, scale: 0.9 }}
@@ -191,14 +190,14 @@ export function StatsGrid() {
         </div>
       </div>
 
-      {/* Personal Data Section */}
+      {/* Global Data Section */}
       <div>
         <h2 className="text-2xl font-bold text-foreground mb-4 flex items-center gap-2">
-          <User className="w-6 h-6 text-primary" />
-          {t("personalData")}
+          <Globe className="w-6 h-6 text-primary" />
+          {t("globalData")}
         </h2>
         <div className="grid grid-cols-2 gap-4">
-          {personalStats.map((stat, index) => (
+          {globalStats.map((stat, index) => (
             <motion.div
               key={stat.label}
               initial={{ opacity: 0, scale: 0.9 }}

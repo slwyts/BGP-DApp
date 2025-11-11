@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useLocale } from "@/components/locale-provider";
 import { Check, Copy, UserPlus } from "lucide-react";
 import { GridPattern } from "@/components/ui/grid-pattern";
-import { useUserInfo, useRegister } from "@/lib/hooks/use-contracts";
+import { useUserInfo, useRegister, useDirectReferralsWithTime } from "@/lib/hooks/use-contracts";
 import { useAccount } from "wagmi";
 import { useSearchParams } from "next/navigation";
 import { isAddress } from "viem";
@@ -18,6 +18,7 @@ export default function TeamPage() {
   const { address } = useAccount();
   const { userInfo, refetch: refetchUserInfo } = useUserInfo();
   const { register, isPending, isSuccess } = useRegister();
+  const { addresses: referralAddresses, timestamps: referralTimestamps } = useDirectReferralsWithTime();
   const searchParams = useSearchParams();
   
   const [referrerInput, setReferrerInput] = useState("");
@@ -70,28 +71,27 @@ export default function TeamPage() {
   const isRegistered = userInfo && userInfo.userReferrer !== '0x0000000000000000000000000000000000000000';
   const currentReferrer = userInfo?.userReferrer || "";
 
-  const levels = [
-    { depth: 1, bgp: 800, contrib: 8 },
-    { depth: 2, bgp: 400, contrib: 4 },
-    { depth: 3, bgp: 200, contrib: 2 },
-    { depth: 4, bgp: 100, contrib: 1 },
-    { depth: 5, bgp: 100, contrib: 1 },
-    { depth: 6, bgp: 100, contrib: 1 },
-    { depth: 7, bgp: 100, contrib: 1 },
-    { depth: 8, bgp: 100, contrib: 1 },
-    { depth: 9, bgp: 100, contrib: 1 },
-    { depth: 10, bgp: 100, contrib: 1 },
-    { depth: 11, bgp: 100, contrib: 1 },
-    { depth: 12, bgp: 100, contrib: 1 },
-    { depth: 13, bgp: 100, contrib: 1 },
-    { depth: 14, bgp: 100, contrib: 1 },
-    { depth: 15, bgp: 100, contrib: 1 },
-  ];
-
   const copy = async (text: string) => {
     await navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 1200);
+  };
+
+  // 格式化地址为前4位...后4位
+  const formatAddress = (addr: string) => {
+    if (!addr || addr.length < 10) return addr;
+    return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+  };
+
+  // 格式化时间戳为日期
+  const formatDate = (timestamp: bigint) => {
+    if (!timestamp || timestamp === BigInt(0)) return '-';
+    const date = new Date(Number(timestamp) * 1000);
+    return date.toLocaleDateString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
   };
   
   const handleRegister = async () => {
@@ -266,20 +266,25 @@ export default function TeamPage() {
           <div className="bg-card/30 backdrop-blur-md rounded-2xl p-4 border border-primary/20">
             <div className="text-sm font-semibold mb-3">我的邀请</div>
             <div className="grid grid-cols-1 gap-2">
-              {levels.map((lv) => (
-                <div
-                  key={lv.depth}
-                  className="flex items-center justify-between rounded-xl border border-border p-3 bg-background/50"
-                >
-                  <div className="text-sm">L{lv.depth}</div>
-                  <div className="text-xs text-muted-foreground">
-                    BGP {lv.bgp}
+              {referralAddresses && referralAddresses.length > 0 ? (
+                referralAddresses.map((addr, index) => (
+                  <div
+                    key={`${addr}-${index}`}
+                    className="flex items-center justify-between rounded-xl border border-border p-3 bg-background/50"
+                  >
+                    <div className="text-sm font-mono text-primary">
+                      {formatAddress(addr)}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {formatDate(referralTimestamps[index])}
+                    </div>
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    {t("myContribution")} +{lv.contrib}
-                  </div>
+                ))
+              ) : (
+                <div className="text-sm text-muted-foreground text-center py-6">
+                  暂无直推用户
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>

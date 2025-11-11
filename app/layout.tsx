@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { LocaleProvider } from "@/components/locale-provider";
 import { Web3Provider } from "@/components/web3-provider";
 import { ReferralHandler } from "@/components/referral-handler";
+import { AutoConnect } from "@/components/auto-connect";
 
 import { Geist, Geist_Mono, Source_Serif_4 } from "next/font/google";
 
@@ -59,6 +60,7 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             <LocaleProvider>
+              <AutoConnect />
               <Suspense fallback={null}>
                 <ReferralHandler />
               </Suspense>

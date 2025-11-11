@@ -57,8 +57,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     { href: "/rewards", label: t("rewards"), icon: Gift },
     { href: "/me", label: t("profile"), icon: User },
     { href: "/announcements", label: t("announcements"), icon: Megaphone },
-    { href: "#", label: t("officialSite"), icon: Globe, external: true },
-    { href: "#", label: t("blockExplorer"), icon: Search, external: true },
+    { href: "https://www.belachain.com", label: t("officialSite"), icon: Globe, external: true },
+    { href: "https://hash.belachain.com", label: t("blockExplorer"), icon: Search, external: true },
   ];
 
   useEffect(() => {
@@ -221,46 +221,17 @@ export function Sidebar({ open, onClose }: SidebarProps) {
               transition={{ delay: 0.4 }}
               className="mt-auto space-y-3 relative z-10"
             >
-              {isConnected && address ? (
-                <Button
-                  variant="outline"
-                  className="w-full bg-linear-to-r from-primary/10 to-orange-500/10 border-primary/30 hover:from-primary/20 hover:to-orange-500/20 transition-all duration-300"
-                  onClick={() => {
-                    disconnect();
-                    onClose();
-                  }}
-                >
-                  <LogOut className="w-4 h-4 mr-2" />
-                  {t("disconnect")}
-                </Button>
-              ) : (
-                <Button
-                  variant="outline"
-                  className="w-full bg-linear-to-r from-primary/10 to-orange-500/10 border-primary/30 hover:from-primary/20 hover:to-orange-500/20 transition-all duration-300"
-                  onClick={() => {
-                    if (openWeb3Modal) {
-                      openWeb3Modal();
-                    }
-                    onClose();
-                  }}
-                >
-                  <Wallet className="w-4 h-4 mr-2" />
-                  {t("connectWallet")}
-                </Button>
-              )}
-
-              {isConnected && (
-                <div className="relative overflow-hidden bg-linear-to-br from-primary/10 via-orange-500/10 to-transparent rounded-2xl p-4 border border-primary/30">
-                  <div className="relative z-10">
-                    <div className="text-xs text-muted-foreground mb-1">
-                      {t("myBGP")}
-                    </div>
-                    <div className="text-2xl font-bold bg-linear-to-r from-primary to-orange-500 bg-clip-text text-transparent">
-                      {Number(balance || 0).toLocaleString()} BGP
-                    </div>
-                  </div>
-                </div>
-              )}
+              <Button
+                variant="outline"
+                className="w-full bg-linear-to-r from-primary/10 to-orange-500/10 border-primary/30 hover:from-primary/20 hover:to-orange-500/20 transition-all duration-300"
+                onClick={() => {
+                  disconnect();
+                  onClose();
+                }}
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                {t("disconnect")}
+              </Button>
 
               <div className="text-xs text-muted-foreground text-center pt-2">
                 © {new Date().getFullYear()} Belachain
