@@ -52,6 +52,9 @@ export default function RewardsPage() {
   const [records, setRecords] = useState<
     Array<{ type: "USDT" | "BGP"; amount: number; ts: number }>
   >([]);
+  
+  // 保存本次领取的奖励信息，用于成功后显示
+  const [pendingClaim, setPendingClaim] = useState<{ usdt: number; bgp: number } | null>(null);
 
   // 从合约数据中提取
   const totalContribution = userInfo ? Number(userInfo.userContribution) : 0;
@@ -59,7 +62,7 @@ export default function RewardsPage() {
   const withdrawableUSDT = userInfo ? Number(userInfo.userPendingUSDT) / 1e6 : 0; // USDT 6位精度
   const totalUSDTWithdrawn = userInfo ? Number(userInfo.userTotalUSDTWithdrawn) / 1e6 : 0;
   const totalLevelBGP = userInfo ? Number(userInfo.userTotalLevelBGP) / 1e18 : 0; // 等级奖励获得的BGP
-  const withdrawableBGP = userInfo ? Number(userInfo.userPendingInteractionBGP) / 1e18 : 0; // 待提现的交互BGP
+  const withdrawableBGP = userInfo ? Number(userInfo.userPendingReferralBGP) / 1e18 : 0; // 待提现的推荐奖励BGP
 
   const playSound = () => {
     try {
@@ -85,12 +88,31 @@ export default function RewardsPage() {
 
   // 刷新数据当领取成功时
   useEffect(() => {
-    if (isClaimSuccess) {
+    if (isClaimSuccess && pendingClaim) {
       playSound();
       refetchUserInfo();
       refetchClaimStatus();
+      
+      // 显示动画
+      setOverlay({ open: true, usdt: pendingClaim.usdt, bgp: pendingClaim.bgp });
+      
+      // 保存到本地记录
+      try {
+        const key = "claimRecords";
+        const existing = JSON.parse(localStorage.getItem(key) || "[]");
+        const nowTs = Date.now();
+        const next = [
+          ...existing,
+          { type: "USDT", amount: pendingClaim.usdt, ts: nowTs },
+          { type: "BGP", amount: pendingClaim.bgp, ts: nowTs },
+        ].slice(-100);
+        localStorage.setItem(key, JSON.stringify(next));
+      } catch {}
+      
+      // 清除待领取状态
+      setPendingClaim(null);
     }
-  }, [isClaimSuccess, refetchUserInfo, refetchClaimStatus]);
+  }, [isClaimSuccess, pendingClaim, refetchUserInfo, refetchClaimStatus]);
 
   useEffect(() => {
     if (isWithdrawSuccess || isWithdrawBGPSuccess) {
@@ -101,21 +123,10 @@ export default function RewardsPage() {
   const nextLevel = LEVELS.find((lv) => lv.need > totalContribution);
 
   const handleClaimLevel = (level: number, usdtReward: number, bgpReward: number) => {
+    // 保存待领取的奖励信息
+    setPendingClaim({ usdt: usdtReward, bgp: bgpReward });
+    // 发起交易
     claimLevelReward(level);
-    // 显示动画
-    setOverlay({ open: true, usdt: usdtReward, bgp: bgpReward });
-    // 保存到本地记录
-    try {
-      const key = "claimRecords";
-      const existing = JSON.parse(localStorage.getItem(key) || "[]");
-      const nowTs = Date.now();
-      const next = [
-        ...existing,
-        { type: "USDT", amount: usdtReward, ts: nowTs },
-        { type: "BGP", amount: bgpReward, ts: nowTs },
-      ].slice(-100);
-      localStorage.setItem(key, JSON.stringify(next));
-    } catch {}
   };
 
   const handleWithdrawUSDT = () => {
@@ -245,7 +256,7 @@ export default function RewardsPage() {
                   size="sm"
                   className="w-full bg-linear-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90"
                   onClick={() => withdrawBGP()}
-                  disabled={isWithdrawBGPPending || withdrawableBGP < 10000}
+                  disabled={isWithdrawBGPPending || withdrawableBGP <= 0}
                 >
                   <ArrowDownToLine className="w-4 h-4 mr-1" />
                   {isWithdrawBGPPending ? t("pending") : t("withdrawButton")}

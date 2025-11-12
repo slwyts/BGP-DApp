@@ -17,9 +17,6 @@ abstract contract ReferralModule is Ownable {
     function _getBGPToken() internal view virtual returns (BGPToken);
     function _getAntiSybil() internal view virtual returns (IAntiSybil);
     function _getTreasury() internal view virtual returns (address payable);
-
-    // 注册配置
-    uint256 public constant REGISTRATION_COST = 0.00018 ether; // 0.63 USDT (ETH @ $3500)
     
     // 推荐奖励配置
     struct ReferralReward {
@@ -37,7 +34,8 @@ abstract contract ReferralModule is Ownable {
     mapping(address => uint256) public registeredAt; // 用户注册时间戳
     
     // 统计数据
-    mapping(address => uint256) public totalReferralRewards; // 总推荐奖励 (BGP, 18位精度)
+    mapping(address => uint256) public pendingReferralBGP; // 待提现的推荐奖励 (BGP, 18位精度)
+    mapping(address => uint256) public totalReferralBGPWithdrawn; // 已提现的推荐奖励 (BGP, 18位精度)
     mapping(address => uint256) public teamSize; // 团队总人数（包括所有代）
     
     // 早鸟奖励配置（前1万名注册用户）
@@ -158,17 +156,11 @@ abstract contract ReferralModule is Ownable {
             if (directCount >= level) {
                 ReferralReward memory reward = levelRewards[level];
                 
-                // 发放 BGP 奖励（使用 transfer 而不是 mint）
-                require(
-                    _getBGPToken().transfer(current, reward.bgpAmount),
-                    "BGP transfer failed"
-                );
+                // 累积推荐奖励BGP（不立即发放）
+                pendingReferralBGP[current] += reward.bgpAmount;
                 
                 // 增加贡献值
                 contribution[current] += reward.contributionValue;
-                
-                // 统计总奖励
-                totalReferralRewards[current] += reward.bgpAmount;
                 
                 emit ReferralRewardDistributed(
                     current,
@@ -182,6 +174,29 @@ abstract contract ReferralModule is Ownable {
             // 向上查找下一级推荐人
             current = referrer[current];
         }
+    }
+    
+    /**
+     * @dev 获取待提现的推荐BGP（供LevelModule使用）
+     */
+    function _getPendingReferralBGP(address user) internal view virtual returns (uint256) {
+        return pendingReferralBGP[user];
+    }
+    
+    /**
+     * @dev 获取已提现的推荐BGP（供LevelModule使用）
+     */
+    function _getTotalReferralBGPWithdrawn(address user) internal view virtual returns (uint256) {
+        return totalReferralBGPWithdrawn[user];
+    }
+    
+    /**
+     * @dev 清零待提现的推荐BGP（供LevelModule使用）
+     */
+    function _clearPendingReferralBGP(address user) internal virtual {
+        uint256 amount = pendingReferralBGP[user];
+        pendingReferralBGP[user] = 0;
+        totalReferralBGPWithdrawn[user] += amount;
     }
     
     /**

@@ -12,17 +12,20 @@ import { useAccount } from "wagmi";
 import { useSearchParams } from "next/navigation";
 import { isAddress } from "viem";
 import { hashIP } from "@/lib/ip-hash";
+import { DailyRewardAnimation } from "@/components/daily-reward-animation";
 
 export default function TeamPage() {
   const { t } = useLocale();
   const { address } = useAccount();
   const { userInfo, refetch: refetchUserInfo } = useUserInfo();
-  const { register, isPending, isSuccess } = useRegister();
+  const { register, isPending, isSuccess, hash } = useRegister();
   const { addresses: referralAddresses, timestamps: referralTimestamps } = useDirectReferralsWithTime();
   const searchParams = useSearchParams();
   
   const [referrerInput, setReferrerInput] = useState("");
   const [showInput, setShowInput] = useState(false);
+  const [showRewardAnim, setShowRewardAnim] = useState(false);
+  const [rewardAmount, setRewardAmount] = useState(0); // 奖励金额
   
   // 检查 URL 中的 ref 参数
   useEffect(() => {
@@ -33,11 +36,18 @@ export default function TeamPage() {
     }
   }, [searchParams]);
   
-  // 注册成功后刷新数据
+  // 注册成功后刷新数据并显示奖励动画
   useEffect(() => {
     if (isSuccess) {
       refetchUserInfo();
       setShowInput(false);
+      
+      // TODO: 从交易回执事件中读取 isEarlyBird 和 bgpReward
+      // 暂时假设前1万名用户都是早鸟，获得5000 BGP
+      // 实际应该解析 Registered 事件的 isEarlyBird 和 bgpReward 参数
+      const earlyBirdReward = 5000;
+      setRewardAmount(earlyBirdReward);
+      setShowRewardAnim(true);
     }
   }, [isSuccess, refetchUserInfo]);
   
@@ -118,6 +128,15 @@ export default function TeamPage() {
         strokeDasharray="4 4"
       />
       <div className="absolute inset-0 bg-linear-to-br from-primary/5 via-transparent to-orange-500/5 z-0" />
+
+      {/* 注册成功奖励动画 */}
+      <DailyRewardAnimation
+        open={showRewardAnim}
+        onClose={() => setShowRewardAnim(false)}
+        amount={rewardAmount}
+        title={rewardAmount > 0 ? "🎉 早鸟奖励" : undefined}
+        subtitle={rewardAmount > 0 ? "恭喜您获得前1万名早鸟奖励！" : undefined}
+      />
 
       <div className="relative z-10 min-h-screen">
         <div className="px-5 py-4">

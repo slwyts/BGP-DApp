@@ -8,7 +8,8 @@ export interface UserInfo {
   directReferralCount: bigint;
   userTeamSize: bigint;
   userContribution: bigint;
-  userTotalReferralRewards: bigint;
+  userPendingReferralBGP: bigint; // 待提现的推荐奖励BGP
+  userTotalReferralBGPWithdrawn: bigint; // 已提现的推荐奖励BGP
   // 等级信息
   currentLevel: number;
   userPendingUSDT: bigint;
@@ -17,8 +18,7 @@ export interface UserInfo {
   // 交互信息
   todayInteractionCount: number;
   totalInteractionCount: bigint;
-  userPendingInteractionBGP: bigint;
-  userTotalInteractionBGPWithdrawn: bigint;
+  userTotalInteractionBGP: bigint; // 总交互BGP（直接发放）
   // 早鸟奖励信息
   hasClaimedEarlyBird: boolean;
 }

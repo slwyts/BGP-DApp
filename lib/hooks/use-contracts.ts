@@ -51,15 +51,15 @@ export function useUserInfo() {
     directReferralCount: (data as any[])[1],
     userTeamSize: (data as any[])[2],
     userContribution: (data as any[])[3],
-    userTotalReferralRewards: (data as any[])[4],
-    currentLevel: (data as any[])[5],
-    userPendingUSDT: (data as any[])[6],
-    userTotalUSDTWithdrawn: (data as any[])[7],
-    userTotalLevelBGP: (data as any[])[8],
-    todayInteractionCount: (data as any[])[9],
-    totalInteractionCount: (data as any[])[10],
-    userPendingInteractionBGP: BigInt(0), // 交互奖励直接发放，无pending
-    userTotalInteractionBGPWithdrawn: (data as any[])[11], // 这就是总交互BGP
+    userPendingReferralBGP: (data as any[])[4], // 待提现的推荐奖励BGP
+    userTotalReferralBGPWithdrawn: (data as any[])[5], // 已提现的推荐奖励BGP
+    currentLevel: (data as any[])[6],
+    userPendingUSDT: (data as any[])[7],
+    userTotalUSDTWithdrawn: (data as any[])[8],
+    userTotalLevelBGP: (data as any[])[9],
+    todayInteractionCount: (data as any[])[10],
+    totalInteractionCount: (data as any[])[11],
+    userTotalInteractionBGP: (data as any[])[12], // 总交互BGP（直接发放）
     hasClaimedEarlyBird: false, // 早鸟奖励包含在交互BGP中
   } : undefined
 
@@ -298,7 +298,10 @@ export function useWithdrawUSDT() {
 /**
  * 提现交互奖励BGP
  */
-export function useWithdrawInteractionBGP() {
+/**
+ * 提现推荐奖励BGP
+ */
+export function useWithdrawReferralBGP() {
   const { chainId } = useAccount()
   const addresses = chainId ? getContractAddresses() : null
   const { writeContract, data: hash, isPending, error } = useWriteContract()
@@ -313,7 +316,7 @@ export function useWithdrawInteractionBGP() {
     writeContract({
       address: addresses.dapp as `0x${string}`,
       abi: DAppABI,
-      functionName: 'withdrawInteractionBGP',
+      functionName: 'withdrawReferralBGP',
       args: [],
     })
   }
@@ -327,6 +330,9 @@ export function useWithdrawInteractionBGP() {
     error,
   }
 }
+
+// 向后兼容的别名
+export const useWithdrawInteractionBGP = useWithdrawReferralBGP
 
 /**
  * 转账 BGP

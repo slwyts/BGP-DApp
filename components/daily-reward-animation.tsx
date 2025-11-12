@@ -9,12 +9,16 @@ interface DailyRewardAnimationProps {
   open: boolean;
   onClose: () => void;
   amount?: number; // BGP 奖励数量
+  title?: string; // 自定义标题
+  subtitle?: string; // 自定义副标题
 }
 
 export function DailyRewardAnimation({
   open,
   onClose,
   amount = 1000, // 默认 1000 BGP
+  title,
+  subtitle,
 }: DailyRewardAnimationProps) {
   const { t } = useLocale();
   const [isMobile, setIsMobile] = useState(false);
@@ -233,10 +237,10 @@ export function DailyRewardAnimation({
                 }
                 className="text-6xl font-bold mb-4 bg-linear-to-r from-primary via-orange-500 to-orange-600 bg-clip-text text-transparent"
               >
-                {t("dailyReward")}
+                {title || t("dailyReward")}
               </motion.h2>
               <p className="text-2xl text-muted-foreground mb-2">
-                {t("interactionSuccessful")}
+                {subtitle || t("interactionSuccessful")}
               </p>
               <motion.p
                 animate={

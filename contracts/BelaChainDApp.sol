@@ -91,6 +91,36 @@ contract BelaChainDApp is
     }
     
     /**
+     * @dev 实现虚函数：获取待提现的推荐BGP（供LevelModule使用）
+     */
+    function _getPendingReferralBGP(address user) internal view override(LevelModule, ReferralModule) returns (uint256) {
+        return pendingReferralBGP[user];
+    }
+    
+    /**
+     * @dev 实现虚函数：获取已提现的推荐BGP（供LevelModule使用）
+     */
+    function _getTotalReferralBGPWithdrawn(address user) internal view override(LevelModule, ReferralModule) returns (uint256) {
+        return totalReferralBGPWithdrawn[user];
+    }
+    
+    /**
+     * @dev 实现虚函数：清零待提现的推荐BGP（供LevelModule使用）
+     */
+    function _clearPendingReferralBGP(address user) internal override(LevelModule, ReferralModule) {
+        uint256 amount = pendingReferralBGP[user];
+        pendingReferralBGP[user] = 0;
+        totalReferralBGPWithdrawn[user] += amount;
+    }
+    
+    /**
+     * @dev 实现虚函数：获取贡献值（供LevelModule使用）
+     */
+    function _getContribution(address user) internal view override returns (uint256) {
+        return contribution[user];
+    }
+    
+    /**
      * @dev 用户交互主函数
      */
     function interact()
@@ -164,7 +194,8 @@ contract BelaChainDApp is
             uint256 directReferralCount,
             uint256 userTeamSize,
             uint256 userContribution,
-            uint256 userTotalReferralRewards,
+            uint256 userPendingReferralBGP,
+            uint256 userTotalReferralBGPWithdrawn,
             // 等级信息
             uint8 currentLevel,
             uint256 userPendingUSDT,
@@ -182,7 +213,8 @@ contract BelaChainDApp is
             directReferrals[user].length,
             teamSize[user],
             contribution[user],
-            totalReferralRewards[user],
+            pendingReferralBGP[user],
+            totalReferralBGPWithdrawn[user],
             // 等级信息
             userLevel[user],
             pendingUSDT[user],

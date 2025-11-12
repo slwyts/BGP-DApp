@@ -17,6 +17,12 @@ abstract contract LevelModule is Ownable {
     function _getBGPToken() internal view virtual returns (BGPToken);
     function _getTreasury() internal view virtual returns (address payable);
     function _getUSDT() internal view virtual returns (IERC20);
+    
+    // 访问推荐模块数据的虚函数
+    function _getPendingReferralBGP(address user) internal view virtual returns (uint256);
+    function _getTotalReferralBGPWithdrawn(address user) internal view virtual returns (uint256);
+    function _clearPendingReferralBGP(address user) internal virtual;
+    function _getContribution(address user) internal view virtual returns (uint256);
 
     // 等级配置
     struct Level {
@@ -97,6 +103,10 @@ abstract contract LevelModule is Ownable {
      */
     function claimLevelReward(uint8 level) external {
         require(level >= 1 && level <= 12, "Invalid level");
+        
+        // 先更新用户等级（基于当前贡献值）
+        _updateUserLevel(msg.sender, _getContribution(msg.sender));
+        
         require(userLevel[msg.sender] >= level, "Level not reached");
         require(!levelClaimed[msg.sender][level], "Already claimed");
         
@@ -141,6 +151,23 @@ abstract contract LevelModule is Ownable {
         require(usdt.transfer(msg.sender, amount), "USDT transfer failed");
         
         emit USDTWithdrawn(msg.sender, amount);
+    }
+    
+    /**
+     * @dev 提现推荐奖励BGP（大于0即可提）
+     */
+    function withdrawReferralBGP() external {
+        uint256 amount = _getPendingReferralBGP(msg.sender);
+        require(amount > 0, "No pending referral BGP");
+        
+        // 清零待提现金额
+        _clearPendingReferralBGP(msg.sender);
+        
+        // 转账 BGP
+        require(
+            _getBGPToken().transfer(msg.sender, amount),
+            "BGP transfer failed"
+        );
     }
     
     /**
