@@ -9,6 +9,7 @@ import "./AntiSybil.sol";
 import "./ReferralModule.sol";
 import "./LevelModule.sol";
 import "./InteractionModule.sol";
+import "./FeeModule.sol";
 
 /**
  * @title BelaChainDApp
@@ -18,6 +19,7 @@ import "./InteractionModule.sol";
  * - 等级奖励系统
  * - 每日交互系统
  * - AntiSybil 防女巫攻击系统
+ * - 动态手续费系统（Chainlink 预言机）
  * 
  * 单一合约部署，便于管理和维护
  */
@@ -25,13 +27,13 @@ contract BelaChainDApp is
     ReferralModule,
     LevelModule,
     InteractionModule,
+    FeeModule,
     ReentrancyGuard,
     Pausable
 {
     // 共享变量（被所有模块使用）
     BGPToken public bgpToken;
     IERC20 public usdtToken;
-    IAntiSybil public antiSybilContract;
     address payable public treasury;
     
     // 版本信息
@@ -42,26 +44,21 @@ contract BelaChainDApp is
     
     event TreasuryUpdated(address indexed oldTreasury, address indexed newTreasury);
     event AutoLevelCheckUpdated(bool enabled);
-    event AntiSybilContractUpdated(address indexed newAntiSybil);
-    
+
     /**
      * @dev 构造函数
-     * @param _bgpToken BGP 代币合约地址
+     * @param _bgpToken BGP 代币合约地址（包含 AntiSybil 引用）
      * @param _usdtToken USDT 代币合约地址
-     * @param _antiSybilContract AntiSybil 合约地址
      */
     constructor(
         address _bgpToken,
-        address _usdtToken,
-        address _antiSybilContract
+        address _usdtToken
     ) Ownable(msg.sender) {
         require(_bgpToken != address(0), "Invalid BGP token address");
         require(_usdtToken != address(0), "Invalid USDT token address");
-        require(_antiSybilContract != address(0), "Invalid AntiSybil address");
-        
+
         bgpToken = BGPToken(_bgpToken);
         usdtToken = IERC20(_usdtToken);
-        antiSybilContract = IAntiSybil(_antiSybilContract);
         treasury = payable(msg.sender); // Treasury 就是 owner
     }
     
@@ -71,18 +68,11 @@ contract BelaChainDApp is
     function _getBGPToken() internal view override(ReferralModule, LevelModule, InteractionModule) returns (BGPToken) {
         return bgpToken;
     }
-    
-    /**
-     * @dev 实现虚函数：添加待提取的交互BGP
-     */
-    function _addPendingInteractionBGP(address user, uint256 amount) internal override(ReferralModule) {
-        pendingInteractionBGP[user] += amount;
-    }
-    
+
     /**
      * @dev 实现虚函数：获取 Treasury
      */
-    function _getTreasury() internal view override(LevelModule, InteractionModule) returns (address payable) {
+    function _getTreasury() internal view override(ReferralModule, LevelModule, InteractionModule, FeeModule) returns (address payable) {
         return treasury;
     }
 
@@ -92,12 +82,12 @@ contract BelaChainDApp is
     function _getUSDT() internal view override(LevelModule) returns (IERC20) {
         return usdtToken;
     }
-    
+
     /**
-     * @dev 实现虚函数：获取 AntiSybil 合约
+     * @dev 实现虚函数：获取 AntiSybil 合约（从 BGPToken 获取）
      */
     function _getAntiSybil() internal view override(ReferralModule) returns (IAntiSybil) {
-        return antiSybilContract;
+        return bgpToken.antiSybilContract();
     }
     
     /**
@@ -109,29 +99,43 @@ contract BelaChainDApp is
         nonReentrant
         whenNotPaused
     {
-        require(msg.value >= INTERACTION_COST, "Insufficient payment");
+        uint256 minFee = getMinFee();
+        require(msg.value >= minFee, "Insufficient payment");
 
         // 0. 检查用户是否已绑定推荐人（owner 除外）
         if (msg.sender != owner()) {
             require(referrer[msg.sender] != address(0), "Must register with a referrer first");
         }
 
-        // 1. 执行交互（发放 BGP 奖励）
+        // 1. 收取手续费
+        _collectFee(minFee);
+
+        // 2. 执行交互（发放 BGP 奖励）
         InteractionModule._interact(msg.sender);
 
-        // 2. 分发推荐奖励（如果用户有推荐人）
+        // 3. 分发推荐奖励（如果用户有推荐人）
         if (referrer[msg.sender] != address(0)) {
             ReferralModule._distributeReferralRewards(msg.sender);
         }
 
-        // 3. 检查并更新等级（如果启用）
+        // 4. 检查并更新等级（如果启用）
         if (autoLevelCheck) {
             LevelModule._updateUserLevel(msg.sender, contribution[msg.sender]);
         }
-
-        // 4. 转账 gas 费到 treasury
-        (bool success, ) = treasury.call{value: msg.value}("");
-        require(success, "Transfer failed");
+    }
+    
+    /**
+     * @dev 用户注册函数（重写以使用动态手续费）
+     */
+    function register(address _referrer, bytes32 ipHash) external payable {
+        uint256 minFee = getMinFee();
+        require(msg.value >= minFee, "Insufficient payment");
+        
+        // 收取手续费
+        _collectFee(minFee);
+        
+        // 调用父合约的内部注册逻辑
+        ReferralModule._register(msg.sender, _referrer, ipHash);
     }
     
     /**
@@ -171,10 +175,7 @@ contract BelaChainDApp is
             // 交互信息
             uint8 todayInteractionCount,
             uint256 totalInteractionCount,
-            uint256 userPendingInteractionBGP,
-            uint256 userTotalInteractionBGPWithdrawn,
-            // 早鸟奖励信息
-            bool userHasClaimedEarlyBird
+            uint256 userTotalInteractionBGP
         )
     {
         return (
@@ -192,10 +193,7 @@ contract BelaChainDApp is
             // 交互信息
             this.getTodayInteractionCount(user),
             this.getTotalInteractionCount(user),
-            pendingInteractionBGP[user],
-            totalInteractionBGPWithdrawn[user],
-            // 早鸟奖励信息
-            hasClaimedEarlyBird[user]
+            totalInteractionBGP[user]
         );
     }
     
@@ -239,16 +237,7 @@ contract BelaChainDApp is
         autoLevelCheck = enabled;
         emit AutoLevelCheckUpdated(enabled);
     }
-    
-    /**
-     * @dev 设置 AntiSybil 合约地址（紧急情况）
-     */
-    function setAntiSybilContract(address _newAntiSybil) external onlyOwner {
-        require(_newAntiSybil != address(0), "Invalid address");
-        antiSybilContract = IAntiSybil(_newAntiSybil);
-        emit AntiSybilContractUpdated(_newAntiSybil);
-    }
-    
+
     /**
      * @dev 暂停合约
      */

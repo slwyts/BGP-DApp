@@ -15,8 +15,11 @@ import "./AntiSybil.sol";
 abstract contract ReferralModule is Ownable {
     // 需要主合约提供这些函数
     function _getBGPToken() internal view virtual returns (BGPToken);
-    function _addPendingInteractionBGP(address user, uint256 amount) internal virtual;
     function _getAntiSybil() internal view virtual returns (IAntiSybil);
+    function _getTreasury() internal view virtual returns (address payable);
+
+    // 注册配置
+    uint256 public constant REGISTRATION_COST = 0.00018 ether; // 0.63 USDT (ETH @ $3500)
     
     // 推荐奖励配置
     struct ReferralReward {
@@ -41,10 +44,14 @@ abstract contract ReferralModule is Ownable {
     uint256 public totalRegistered; // 总注册人数
     uint256 public constant EARLY_BIRD_LIMIT = 10000; // 前1万名
     uint256 public constant EARLY_BIRD_REWARD = 5000 * 10**18; // 5000 BGP
-    mapping(address => bool) public hasClaimedEarlyBird; // 是否已领取早鸟奖励
-    
-    event Registered(address indexed user, address indexed referrer);
-    event EarlyBirdRewardClaimed(address indexed user, uint256 amount, uint256 registrationNumber);
+
+    event Registered(
+        address indexed user,
+        address indexed referrer,
+        bool isEarlyBird,
+        uint256 bgpReward,
+        uint256 registrationNumber
+    );
     event ReferralRewardDistributed(
         address indexed referrer,
         address indexed user,
@@ -67,52 +74,73 @@ abstract contract ReferralModule is Ownable {
     }
     
     /**
-     * @dev 用户注册并绑定推荐人
+     * @dev 用户注册并绑定推荐人（需支付注册费用）
      * @param _referrer 推荐人地址
      * @param ipHash IP 地址的哈希值
      */
-    function register(address _referrer, bytes32 ipHash) external {
-        require(referrer[msg.sender] == address(0), "Already registered");
-        require(_referrer != msg.sender, "Cannot refer yourself");
-        require(_referrer != address(0), "Invalid referrer");
-
-        // 检查推荐人是否有资格（必须已绑定推荐人，owner 除外）
-        if (_referrer != owner()) {
-            require(referrer[_referrer] != address(0), "Referrer must be registered first");
+    /**
+     * @notice 内部注册函数（由主合约调用）
+     * @param user 注册用户地址
+     * @param _referrer 推荐人地址
+     * @param ipHash IP 哈希值（用于反女巫攻击）
+     */
+    function _register(address user, address _referrer, bytes32 ipHash) internal {
+        require(referrer[user] == address(0), "Already registered");
+        
+        // Owner 特殊处理：强制绑定到 0x0000000000000000000000000000000000000001
+        address actualReferrer;
+        if (user == owner()) {
+            actualReferrer = address(1); // 0x0000000000000000000000000000000000000001
+        } else {
+            require(_referrer != user, "Cannot refer yourself");
+            require(_referrer != address(0), "Invalid referrer");
+            
+            // 检查推荐人是否有资格（必须已绑定推荐人，owner 除外）
+            if (_referrer != owner()) {
+                require(referrer[_referrer] != address(0), "Referrer must be registered first");
+            }
+            
+            actualReferrer = _referrer;
         }
 
         // 反女巫攻击检查（通过 AntiSybil 合约）
         IAntiSybil antiSybil = _getAntiSybil();
-        require(!antiSybil.isBlacklisted(msg.sender), "Address is blacklisted");
+        require(!antiSybil.isBlacklisted(user), "Address is blacklisted");
 
         // 在 AntiSybil 中注册地址
-        antiSybil.registerAddress(msg.sender, ipHash);
+        antiSybil.registerAddress(user, ipHash);
 
-        referrer[msg.sender] = _referrer;
-        directReferrals[_referrer].push(msg.sender);
-        registeredAt[msg.sender] = block.timestamp; // 记录注册时间
-
-        // 更新上级的团队人数（递归向上）
-        address current = _referrer;
-        for (uint8 i = 0; i < 15 && current != address(0); i++) {
-            teamSize[current]++;
-            current = referrer[current];
+        referrer[user] = actualReferrer;
+        
+        // 只有非 owner 才更新推荐人的直推列表和团队人数
+        if (user != owner()) {
+            directReferrals[actualReferrer].push(user);
+            
+            // 更新上级的团队人数（递归向上）
+            address current = actualReferrer;
+            for (uint8 i = 0; i < 15 && current != address(0) && current != address(1); i++) {
+                teamSize[current]++;
+                current = referrer[current];
+            }
         }
+
+        registeredAt[user] = block.timestamp; // 记录注册时间
 
         // 增加注册人数
         totalRegistered++;
 
-        // 前1万名发放5000 BGP早鸟奖励（直接转账）
-        if (totalRegistered <= EARLY_BIRD_LIMIT) {
-            hasClaimedEarlyBird[msg.sender] = true;
+        // 前1万名发放5000 BGP早鸟奖励
+        bool isEarlyBird = totalRegistered <= EARLY_BIRD_LIMIT;
+        uint256 bgpReward = isEarlyBird ? EARLY_BIRD_REWARD : 0;
+
+        if (isEarlyBird) {
             require(
-                _getBGPToken().transfer(msg.sender, EARLY_BIRD_REWARD),
+                _getBGPToken().transfer(user, EARLY_BIRD_REWARD),
                 "Early bird reward transfer failed"
             );
-            emit EarlyBirdRewardClaimed(msg.sender, EARLY_BIRD_REWARD, totalRegistered);
         }
 
-        emit Registered(msg.sender, _referrer);
+        emit Registered(user, actualReferrer, isEarlyBird, bgpReward, totalRegistered);
     }
     
     /**

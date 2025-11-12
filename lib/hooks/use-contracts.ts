@@ -1,6 +1,6 @@
 'use client'
 
-import { useReadContract, useWriteContract, useAccount, useWaitForTransactionReceipt } from 'wagmi'
+import { useReadContract, useWriteContract, useAccount, useWaitForTransactionReceipt, useBlockNumber, useBlock } from 'wagmi'
 import { parseEther, formatEther, type Abi } from 'viem'
 import { getContractAddresses } from '../contracts/addresses'
 import BelaChainDAppArtifact from '../../artifacts/contracts/BelaChainDApp.sol/BelaChainDApp.json'
@@ -9,6 +9,24 @@ import type { UserInfo } from '../contracts/types'
 
 const DAppABI = BelaChainDAppArtifact.abi as Abi
 const BGPTokenABI = BGPTokenArtifact.abi as Abi
+
+/**
+ * 获取区块链当前时间戳
+ */
+export function useBlockTimestamp() {
+  const { data: blockNumber } = useBlockNumber({ watch: true })
+  const { data: block } = useBlock({ 
+    blockNumber,
+    query: {
+      enabled: !!blockNumber,
+    }
+  })
+  
+  return {
+    timestamp: block?.timestamp ? Number(block.timestamp) : undefined,
+    isLoading: !block,
+  }
+}
 
 /**
  * 获取用户信息
@@ -40,9 +58,9 @@ export function useUserInfo() {
     userTotalLevelBGP: (data as any[])[8],
     todayInteractionCount: (data as any[])[9],
     totalInteractionCount: (data as any[])[10],
-    userPendingInteractionBGP: (data as any[])[11],
-    userTotalInteractionBGPWithdrawn: (data as any[])[12],
-    hasClaimedEarlyBird: (data as any[])[13],
+    userPendingInteractionBGP: BigInt(0), // 交互奖励直接发放，无pending
+    userTotalInteractionBGPWithdrawn: (data as any[])[11], // 这就是总交互BGP
+    hasClaimedEarlyBird: false, // 早鸟奖励包含在交互BGP中
   } : undefined
 
   return {
@@ -130,6 +148,7 @@ export function useEarlyBirdStatus() {
 export function useRegister() {
   const { chainId } = useAccount()
   const addresses = chainId ? getContractAddresses() : null
+  const { minFee } = useContractConstants()
   const { writeContract, data: hash, isPending, error } = useWriteContract()
 
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
@@ -137,13 +156,19 @@ export function useRegister() {
   })
 
   const register = (referrer: string, ipHash: string) => {
-    if (!addresses) return
+    if (!addresses || !minFee) return
+
+    // 生成随机费用：0.6-0.8 USD (minFee * 1 到 minFee * 1.333)
+    // minFee 是 0.6 USD，随机乘以 1 到 1.333 倍得到 0.6-0.8 USD
+    const randomMultiplier = 1 + Math.random() * 0.333 // 1.0 to 1.333
+    const randomFee = BigInt(Math.floor(Number(minFee) * randomMultiplier))
 
     writeContract({
       address: addresses.dapp as `0x${string}`,
       abi: DAppABI,
       functionName: 'register',
       args: [referrer, ipHash],
+      value: randomFee, // 随机费用 0.6-0.8 USD
     })
   }
 
@@ -163,6 +188,7 @@ export function useRegister() {
 export function useInteract() {
   const { chainId, isConnected } = useAccount()
   const addresses = chainId ? getContractAddresses() : null
+  const { minFee } = useContractConstants()
   const { writeContract, data: hash, isPending, error } = useWriteContract()
 
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
@@ -175,18 +201,22 @@ export function useInteract() {
       return
     }
 
-    if (!addresses) {
-      console.error('❌ 无法获取合约地址')
+    if (!addresses || !minFee) {
+      console.error('❌ 无法获取合约地址或最小费用')
       return
     }
 
-    console.log('✅ 发起交互:', { addresses })
+    // 生成随机费用：0.6-0.8 USD (minFee * 1 到 minFee * 1.333)
+    const randomMultiplier = 1 + Math.random() * 0.333 // 1.0 to 1.333
+    const randomFee = BigInt(Math.floor(Number(minFee) * randomMultiplier))
+
+    console.log('✅ 发起交互:', { addresses, minFee, randomFee })
     writeContract({
       address: addresses.dapp as `0x${string}`,
       abi: DAppABI,
       functionName: 'interact',
       args: [],  // 不再传递 ipHash
-      value: parseEther('0.00015'), // 0.6 USDT (ETH @ $4000)
+      value: randomFee, // 随机费用 0.6-0.8 USD
     })
   }
 
@@ -467,6 +497,83 @@ export function useDirectReferralsWithTime() {
     isLoading,
     error,
     refetch,
+  }
+}
+
+/**
+ * 获取合约常量
+ */
+export function useContractConstants() {
+  const { chainId } = useAccount()
+  const addresses = chainId ? getContractAddresses() : null
+
+  // 动态最小费用（从 FeeModule 读取）
+  const { data: minFee } = useReadContract({
+    address: addresses?.dapp as `0x${string}`,
+    abi: DAppABI,
+    functionName: 'getMinFee',
+    query: {
+      enabled: !!addresses,
+    },
+  })
+
+  // ETH 价格（从预言机读取）
+  const { data: ethPrice } = useReadContract({
+    address: addresses?.dapp as `0x${string}`,
+    abi: DAppABI,
+    functionName: 'getEthPrice',
+    query: {
+      enabled: !!addresses,
+    },
+  })
+
+  // 最低提现 USDT
+  const { data: minWithdrawUSDT } = useReadContract({
+    address: addresses?.dapp as `0x${string}`,
+    abi: DAppABI,
+    functionName: 'MIN_WITHDRAW_USDT',
+    query: {
+      enabled: !!addresses,
+    },
+  })
+
+  // 早鸟奖励限制
+  const { data: earlyBirdLimit } = useReadContract({
+    address: addresses?.dapp as `0x${string}`,
+    abi: DAppABI,
+    functionName: 'EARLY_BIRD_LIMIT',
+    query: {
+      enabled: !!addresses,
+    },
+  })
+
+  // 早鸟奖励金额
+  const { data: earlyBirdReward } = useReadContract({
+    address: addresses?.dapp as `0x${string}`,
+    abi: DAppABI,
+    functionName: 'EARLY_BIRD_REWARD',
+    query: {
+      enabled: !!addresses,
+    },
+  })
+
+  // 每日 BGP 奖励
+  const { data: dailyBGPReward } = useReadContract({
+    address: addresses?.dapp as `0x${string}`,
+    abi: DAppABI,
+    functionName: 'DAILY_BGP_REWARD',
+    query: {
+      enabled: !!addresses,
+    },
+  })
+
+  return {
+    minFee: minFee as bigint | undefined,
+    ethPrice: ethPrice as bigint | undefined,
+    minWithdrawUSDT: minWithdrawUSDT as bigint | undefined,
+    earlyBirdLimit: earlyBirdLimit ? Number(earlyBirdLimit) : undefined,
+    earlyBirdReward: earlyBirdReward as bigint | undefined,
+    dailyBGPReward: dailyBGPReward as bigint | undefined,
   }
 }
 

@@ -10,7 +10,7 @@ if (!projectId) throw new Error('需要设置 NEXT_PUBLIC_PROJECT_ID')
 
 // 定义本地网络
 const localhost = defineChain({
-  id: 1337,
+  id: 31337,
   name: 'Localhost',
   nativeCurrency: {
     decimals: 18,

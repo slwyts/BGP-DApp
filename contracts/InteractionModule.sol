@@ -17,9 +17,10 @@ abstract contract InteractionModule is Ownable {
     function _getTreasury() internal view virtual returns (address payable);
     
     // 交互配置
-    uint256 public constant INTERACTION_COST = 0.00015 ether; // 0.6 USDT (ETH @ $4000)
+    uint256 public constant INTERACTION_COST = 0.00018 ether; // 0.63 USDT (ETH @ $3500)
     uint256 public constant DAILY_BGP_REWARD = 2000 * 10**18; // 每次2000 BGP
     uint256 public constant SLOT_DURATION = 12 hours;
+    uint256 public constant TIMEZONE_OFFSET = 8 hours; // UTC+8 时区偏移
     
     // 用户交互数据
     struct DailyInteraction {
@@ -31,13 +32,9 @@ abstract contract InteractionModule is Ownable {
     }
     
     mapping(address => DailyInteraction) public userInteractions;
-    
-    // 交互奖励累积（待提现）
-    mapping(address => uint256) public pendingInteractionBGP; // 待提现的交互BGP (18位精度)
-    mapping(address => uint256) public totalInteractionBGPWithdrawn; // 已提现的交互BGP
-    
-    // 配置
-    uint256 public constant MIN_WITHDRAW_BGP = 10000 * 10**18; // 最低提现 10000 BGP
+
+    // 交互奖励统计
+    mapping(address => uint256) public totalInteractionBGP; // 总共获得的交互BGP (18位精度)
     
     // 全局统计
     uint256 public totalInteractions;
@@ -51,7 +48,6 @@ abstract contract InteractionModule is Ownable {
         uint256 totalCount,
         uint256 timestamp
     );
-    event InteractionBGPWithdrawn(address indexed user, uint256 amount);
     
     /**
      * @dev 内部交互函数（被主合约调用）
@@ -94,8 +90,12 @@ abstract contract InteractionModule is Ownable {
 
         totalInteractions++;
 
-        // 累积 BGP 奖励（不立即发放）
-        pendingInteractionBGP[user] += DAILY_BGP_REWARD;
+        // 发放 BGP 奖励（直接转账）
+        require(
+            _getBGPToken().transfer(user, DAILY_BGP_REWARD),
+            "BGP transfer failed"
+        );
+        totalInteractionBGP[user] += DAILY_BGP_REWARD;
 
         emit Interacted(
             user,
@@ -105,38 +105,21 @@ abstract contract InteractionModule is Ownable {
             block.timestamp
         );
     }
-    
+
     /**
-     * @dev 提现交互奖励 BGP（累计达到 10000 BGP 才能提）
-     */
-    function withdrawInteractionBGP() external virtual {
-        uint256 amount = pendingInteractionBGP[msg.sender];
-        require(amount >= MIN_WITHDRAW_BGP, "Insufficient BGP balance");
-        
-        BGPToken bgpToken = _getBGPToken();
-        require(bgpToken.balanceOf(address(this)) >= amount, "Insufficient contract balance");
-        
-        // 清零待提现金额
-        pendingInteractionBGP[msg.sender] = 0;
-        totalInteractionBGPWithdrawn[msg.sender] += amount;
-        
-        // 转账
-        require(bgpToken.transfer(msg.sender, amount), "BGP transfer failed");
-        
-        emit InteractionBGPWithdrawn(msg.sender, amount);
-    }
-    
-    /**
-     * @dev 获取当前时段
+     * @dev 获取当前时段（UTC+8 时区）
      */
     function _getCurrentSlot() internal view returns (uint256 currentDay, uint8 currentSlot) {
-        currentDay = block.timestamp / 1 days;
-        uint256 timeInDay = block.timestamp % 1 days;
+        // 将 UTC 时间转换为 UTC+8
+        uint256 adjustedTimestamp = block.timestamp + TIMEZONE_OFFSET;
+        
+        currentDay = adjustedTimestamp / 1 days;
+        uint256 timeInDay = adjustedTimestamp % 1 days;
         
         if (timeInDay < SLOT_DURATION) {
-            currentSlot = 1; // 00:00 - 12:00
+            currentSlot = 1; // 00:00 - 12:00 (UTC+8)
         } else {
-            currentSlot = 2; // 12:00 - 24:00
+            currentSlot = 2; // 12:00 - 24:00 (UTC+8)
         }
     }
     
@@ -155,12 +138,15 @@ abstract contract InteractionModule is Ownable {
         (uint256 currentDay, uint8 currentSlot) = _getCurrentSlot();
         DailyInteraction memory interaction = userInteractions[user];
         
+        // 计算 UTC+8 时区的当天 00:00 时间戳
+        uint256 adjustedTimestamp = block.timestamp + TIMEZONE_OFFSET;
+        uint256 dayStartTimestamp = (adjustedTimestamp / 1 days) * 1 days - TIMEZONE_OFFSET;
+        
         // 如果是新的一天，可以交互
         if (interaction.lastInteractionDay < currentDay) {
             canInteract = true;
             todayCount = 0;
-            uint256 dayStart = currentDay * 1 days;
-            nextSlotTime = currentSlot == 1 ? dayStart : dayStart + SLOT_DURATION;
+            nextSlotTime = currentSlot == 1 ? dayStartTimestamp : dayStartTimestamp + SLOT_DURATION;
             return (canInteract, nextSlotTime, todayCount);
         }
         
@@ -169,23 +155,28 @@ abstract contract InteractionModule is Ownable {
         // 检查今日次数
         if (interaction.todayCount >= 2) {
             canInteract = false;
-            nextSlotTime = (currentDay + 1) * 1 days;
+            nextSlotTime = dayStartTimestamp + 1 days; // 明天 00:00 (UTC+8)
             return (canInteract, nextSlotTime, todayCount);
         }
         
         // 检查当前时段是否已交互
         if (currentSlot == 1 && interaction.slot1Time == 0) {
+            // 在第一时段，且第一时段未交互
             canInteract = true;
-            nextSlotTime = currentDay * 1 days;
+            nextSlotTime = dayStartTimestamp; // 当前时段开始时间（已经过了，但用于显示）
         } else if (currentSlot == 2 && interaction.slot2Time == 0) {
+            // 在第二时段，且第二时段未交互
             canInteract = true;
-            nextSlotTime = currentDay * 1 days + SLOT_DURATION;
+            nextSlotTime = dayStartTimestamp + SLOT_DURATION; // 第二时段开始时间（已经过了，但用于显示）
         } else {
+            // 当前时段已交互，不能再交互
             canInteract = false;
-            if (currentSlot == 1) {
-                nextSlotTime = currentDay * 1 days + SLOT_DURATION;
+            if (currentSlot == 1 && interaction.slot1Time != 0 && interaction.slot2Time == 0) {
+                // 第一时段已交互，第二时段未交互 → 下次是今天 12:00
+                nextSlotTime = dayStartTimestamp + SLOT_DURATION;
             } else {
-                nextSlotTime = (currentDay + 1) * 1 days;
+                // 其他情况（两个时段都交互了，或在第二时段已交互）→ 下次是明天 00:00
+                nextSlotTime = dayStartTimestamp + 1 days;
             }
         }
         

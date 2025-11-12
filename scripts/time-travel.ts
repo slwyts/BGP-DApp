@@ -1,5 +1,4 @@
 import hre from "hardhat";
-const { ethers, network } = hre;
 
 async function main() {
   // 从环境变量获取时间参数
@@ -38,27 +37,30 @@ async function main() {
   console.log(`📅 快进: ${timeArg} (${seconds} 秒)`);
 
   try {
+    // 获取 ethers 和 network（Hardhat 3.x）
+    const { ethers } = await hre.network.connect();
+    
     // 获取当前区块时间
     const blockBefore = await ethers.provider.getBlock('latest');
     const timestampBefore = blockBefore!.timestamp;
-    const dateBefore = new Date(timestampBefore * 1000);
+    const dateBefore = new Date(Number(timestampBefore) * 1000);
     
     console.log(`🕐 当前时间: ${dateBefore.toLocaleString('zh-CN', { timeZone: 'UTC' })} UTC`);
 
-    // 增加区块链时间
-    await network.provider.send("evm_increaseTime", [seconds]);
-    await network.provider.send("evm_mine");
+    // 增加区块链时间（直接使用 ethers.provider）
+    await ethers.provider.send("evm_increaseTime", [seconds]);
+    await ethers.provider.send("evm_mine", []);
 
     // 获取新的区块时间
     const blockAfter = await ethers.provider.getBlock('latest');
     const timestampAfter = blockAfter!.timestamp;
-    const dateAfter = new Date(timestampAfter * 1000);
+    const dateAfter = new Date(Number(timestampAfter) * 1000);
 
     console.log(`🕐 快进后时间: ${dateAfter.toLocaleString('zh-CN', { timeZone: 'UTC' })} UTC`);
     console.log(`✅ 成功快进 ${timeArg}！`);
     
     // 计算时间差
-    const diffSeconds = timestampAfter - timestampBefore;
+    const diffSeconds = Number(timestampAfter) - Number(timestampBefore);
     const diffHours = Math.floor(diffSeconds / 3600);
     const diffMinutes = Math.floor((diffSeconds % 3600) / 60);
     const diffSecs = diffSeconds % 60;

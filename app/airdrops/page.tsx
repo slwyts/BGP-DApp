@@ -11,7 +11,7 @@ import { ClaimAnimationOverlay } from "@/components/claim-animation-overlay";
 import { DailyRewardAnimation } from "@/components/daily-reward-animation";
 import { StatsGrid } from "@/components/stats-grid";
 import { useEffect, useState, useRef, useMemo, useCallback } from "react";
-import { useInteractionStatus, useInteract, useUserInfo, useGlobalStats } from "@/lib/hooks/use-contracts";
+import { useInteractionStatus, useInteract, useUserInfo, useGlobalStats, useBlockTimestamp } from "@/lib/hooks/use-contracts";
 import { getContractAddresses } from "@/lib/contracts/addresses";
 import { useWalletClient } from "wagmi";
 
@@ -34,6 +34,7 @@ export default function HomePage() {
   const { data: walletClient } = useWalletClient();
   const { refetch: refetchUserInfo } = useUserInfo();
   const { refetch: refetchGlobalStats } = useGlobalStats();
+  const { timestamp: blockTimestamp } = useBlockTimestamp();
 
   // 计算本次交互将获得的 BGP 奖励（仅空投奖励）
   const calculateReward = useCallback(() => {
@@ -83,24 +84,28 @@ export default function HomePage() {
     return () => clearTimeout(timer);
   }, []);
 
-  // 计算倒计时
+  // 计算倒计时（使用区块链时间）
   const [cooldown, setCooldown] = useState(0);
   useEffect(() => {
-    if (!nextSlotTime || canInteract) {
+    if (!nextSlotTime || canInteract || !blockTimestamp) {
       setCooldown(0);
       return;
     }
     
+    // 计算初始剩余时间（基于区块链时间）
+    const initialRemaining = Math.max(0, nextSlotTime - blockTimestamp);
+    const startTime = Date.now();
+    
     const updateCooldown = () => {
-      const now = Math.floor(Date.now() / 1000);
-      const diff = Math.max(0, nextSlotTime - now);
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      const diff = Math.max(0, initialRemaining - elapsed);
       setCooldown(diff);
     };
     
     updateCooldown();
     const id = setInterval(updateCooldown, 1000);
     return () => clearInterval(id);
-  }, [nextSlotTime, canInteract]);
+  }, [nextSlotTime, canInteract, blockTimestamp ?? 0]);
 
   // 交互成功后的处理
   useEffect(() => {

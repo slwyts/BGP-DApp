@@ -6,7 +6,7 @@ import { Globe } from "@/components/ui/globe";
 import { centerLatLon } from "@/components/ui/globe-utils";
 import { useLocale } from "@/components/locale-provider";
 import { useTheme } from "next-themes";
-import { useInteractionStatus } from "@/lib/hooks/use-contracts";
+import { useInteractionStatus, useBlockTimestamp } from "@/lib/hooks/use-contracts";
 
 const AIRDROP_CONFIG = {
   circleTimeSeconds: 120,
@@ -33,8 +33,9 @@ export function GlobeAirdrop() {
   const { t } = useLocale();
   const { theme } = useTheme();
   
-  // 获取倒计时数据
+  // 获取倒计时数据和区块链时间
   const { canInteract, nextSlotTime } = useInteractionStatus();
+  const { timestamp: blockTimestamp } = useBlockTimestamp();
   
   const [countdown, setCountdown] = useState(
     AIRDROP_CONFIG.airdropIntervalSeconds,
@@ -210,23 +211,31 @@ export function GlobeAirdrop() {
   );
 
   useEffect(() => {
-    // 使用真实的合约冷却时间
-    if (!nextSlotTime || canInteract) {
+    // 使用区块链时间计算倒计时
+    if (!nextSlotTime || canInteract || !blockTimestamp) {
       setCountdown(0);
       return;
     }
     
+    // 计算初始剩余时间（基于区块链时间）
+    const initialRemaining = Math.max(0, nextSlotTime - blockTimestamp);
+    const startTime = Date.now();
+    
+    // 更新倒计时函数
     const updateCountdown = () => {
-      const now = Math.floor(Date.now() / 1000);
-      const remaining = Math.max(0, nextSlotTime - now);
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      const remaining = Math.max(0, initialRemaining - elapsed);
       setCountdown(remaining);
     };
     
+    // 立即更新一次
     updateCountdown();
+    
+    // 每秒更新
     const interval = setInterval(updateCountdown, 1000);
     
     return () => clearInterval(interval);
-  }, [nextSlotTime, canInteract]);
+  }, [nextSlotTime, canInteract, blockTimestamp ?? 0]); // 使用 ?? 0 确保数组大小一致
 
   // 原有的空投动画效果保持不变
   useEffect(() => {

@@ -1,5 +1,5 @@
-import { HardhatUserConfig } from "hardhat/config";
-import "@nomicfoundation/hardhat-toolbox";
+import { defineConfig } from "hardhat/config";
+import hardhatToolbox from "@nomicfoundation/hardhat-toolbox-mocha-ethers";
 import { config as dotenvConfig } from "dotenv";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -11,7 +11,8 @@ const __dirname = dirname(__filename);
 // 加载 .env.hardhat 文件
 dotenvConfig({ path: resolve(__dirname, ".env.hardhat") });
 
-const config: HardhatUserConfig = {
+export default defineConfig({
+  plugins: [hardhatToolbox],
   solidity: {
     version: "0.8.30",
     settings: {
@@ -24,7 +25,8 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {
-      chainId: 1337,
+      type: "edr-simulated" as const,
+      chainId: 31337,
       accounts: {
         // Hardhat 默认测试账户
         count: 20,
@@ -32,10 +34,12 @@ const config: HardhatUserConfig = {
       },
     },
     localhost: {
+      type: "http" as const,
       url: "http://127.0.0.1:8545",
-      chainId: 1337,
+      chainId: 31337,
     },
     arbitrumSepolia: {
+      type: "http" as const,
       url: process.env.ARBITRUM_SEPOLIA_RPC || "https://sepolia-rollup.arbitrum.io/rpc",
       chainId: 421614,
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
@@ -50,8 +54,5 @@ const config: HardhatUserConfig = {
   },
   typechain: {
     outDir: "typechain-types",
-    target: "ethers-v6",
   },
-};
-
-export default config;
+});

@@ -1,9 +1,8 @@
 import hre from "hardhat";
+import { network } from "hardhat";
 import * as fs from "fs";
 import * as path from "path";
 import { fileURLToPath } from "url";
-
-const { ethers } = hre;
 
 // ES Module 中获取 __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -25,7 +24,7 @@ interface EnvConfig {
 const ENV_CONFIGS: Record<Environment, EnvConfig> = {
   local: {
     network: "localnet",
-    chainId: 1337,
+    chainId: 31337,
     rpcUrl: "http://127.0.0.1:8545",
     shouldMintTestTokens: true,
     shouldDistributeGas: true,
@@ -52,21 +51,28 @@ const ENV_CONFIGS: Record<Environment, EnvConfig> = {
   },
 };
 
-// 根据 hardhat 网络判断环境
-function getEnvironment(): Environment {
-  const network = hre.network.name;
-  if (network === "localhost" || network === "hardhat") {
-    return "local";
-  } else if (network === "arbitrumSepolia") {
-    return "development";
-  } else if (network === "arbitrum") {
-    return "production";
-  }
-  return "local"; // 默认
-}
-
 async function main() {
-  const env = getEnvironment();
+  // 获取 ethers from network connection (Hardhat 3.x)
+  const connection = await network.connect();
+  const ethers = connection.ethers;
+  
+  if (!ethers) {
+    throw new Error("Ethers not found on network connection. Make sure @nomicfoundation/hardhat-ethers is properly installed.");
+  }
+  
+  // 根据 chainId 判断环境
+  const chainId = await connection.provider.request({ method: 'eth_chainId' });
+  const chainIdNum = parseInt(chainId, 16);
+  
+  let env: Environment = "local";
+  if (chainIdNum === 1337 || chainIdNum === 31337) {
+    env = "local";
+  } else if (chainIdNum === 421614) {
+    env = "development";
+  } else if (chainIdNum === 42161) {
+    env = "production";
+  }
+  
   const config = ENV_CONFIGS[env];
   
   console.log("🚀 开始部署合约...");
@@ -118,8 +124,7 @@ async function main() {
   const BelaChainDApp = await ethers.getContractFactory("BelaChainDApp");
   const dapp = await BelaChainDApp.deploy(
     bgpTokenAddress,
-    usdtAddress,
-    antiSybilAddress
+    usdtAddress
   );
   await dapp.waitForDeployment();
   const dappAddress = await dapp.getAddress();
@@ -226,8 +231,8 @@ NEXT_PUBLIC_DAPP_ADDRESS=${dappAddress}
 # RPC URL
 NEXT_PUBLIC_RPC_URL=${config.rpcUrl}
 
-# 注意: 
-# - AntiSybil 地址: ${antiSybilAddress} (前端无需配置，DApp 内部调用)
+# 注意:
+# - AntiSybil 地址: ${antiSybilAddress} (DApp 通过 BGPToken.antiSybilContract() 获取)
 # - Owner/Treasury: ${ownerAddress} (前端可通过 DApp.owner() 查询)
 `;
 
@@ -241,7 +246,7 @@ NEXT_PUBLIC_RPC_URL=${config.rpcUrl}
   console.log("=" .repeat(60));
   console.log("环境:          ", env);
   console.log("网络:          ", config.network);
-  console.log("Chain ID:      ", config.chainId);
+  console.log("Chain ID:      ", chainIdNum, "(实际连接)");
   console.log("AntiSybil:     ", antiSybilAddress);
   console.log("BGPToken:      ", bgpTokenAddress);
   console.log("MockUSDT:      ", usdtAddress);

@@ -97,16 +97,6 @@ export default function TeamPage() {
   const handleRegister = async () => {
     if (!referrerInput) return;
 
-    if (!isAddress(referrerInput)) {
-      alert("无效的邀请人地址格式");
-      return;
-    }
-
-    if (address && referrerInput.toLowerCase() === address.toLowerCase()) {
-      alert("不能邀请自己");
-      return;
-    }
-
     try {
       // 生成 IP hash
       const ipHash = await hashIP();
@@ -114,7 +104,6 @@ export default function TeamPage() {
       register(referrerInput, ipHash);
     } catch (error) {
       console.error("❌ 注册失败:", error);
-      alert("注册失败，请重试");
     }
   };
 
