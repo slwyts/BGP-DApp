@@ -34,9 +34,15 @@ const metadata = {
 
 // 根据环境变量选择支持的链
 const networkMode = process.env.NEXT_PUBLIC_NETWORK || 'arbitrum'
-const chains = networkMode === 'localnet' 
-  ? [localhost] as const
-  : [arbitrum, arbitrumSepolia] as const
+let chains: readonly [typeof localhost] | readonly [typeof arbitrumSepolia] | readonly [typeof arbitrum]
+
+if (networkMode === 'localnet') {
+  chains = [localhost] as const
+} else if (networkMode === 'arbitrum-sepolia') {
+  chains = [arbitrumSepolia] as const
+} else {
+  chains = [arbitrum] as const
+}
 
 // 创建 Wagmi 配置
 export const config = defaultWagmiConfig({

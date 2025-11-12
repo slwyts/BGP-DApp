@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev",
+    "dev": "dotenv -e .env.local -- next dev",
+    "dev:testnet": "dotenv -e .env.development -- next dev",
     "build": "npm run compile && dotenv -e .env.development -- next build",
     "build:prod": "npm run compile && dotenv -e .env.production -- next build",
     "start": "npx serve@latest out",
