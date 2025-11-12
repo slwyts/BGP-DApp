@@ -32,9 +32,12 @@ export default function HomePage() {
   const { canInteract, nextSlotTime, todayCount, refetch: refetchStatus } = useInteractionStatus();
   const { interact, isPending, isConfirming, isSuccess } = useInteract();
   const { data: walletClient } = useWalletClient();
-  const { refetch: refetchUserInfo } = useUserInfo();
+  const { userInfo, refetch: refetchUserInfo } = useUserInfo();
   const { refetch: refetchGlobalStats } = useGlobalStats();
   const { timestamp: blockTimestamp } = useBlockTimestamp();
+  
+  // 检查用户是否已绑定邀请人
+  const hasReferrer = userInfo?.userReferrer && userInfo.userReferrer !== '0x0000000000000000000000000000000000000000';
 
   // 计算本次交互将获得的 BGP 奖励（仅空投奖励）
   const calculateReward = useCallback(() => {
@@ -196,7 +199,7 @@ export default function HomePage() {
   };
 
   // 确定按钮状态
-  const status = isPending || isConfirming ? "pending" : canInteract ? "ready" : "cooldown";
+  const status = !hasReferrer ? "noReferrer" : isPending || isConfirming ? "pending" : canInteract ? "ready" : "cooldown";
 
   if (!mounted) {
     return null;
@@ -350,6 +353,12 @@ export default function HomePage() {
                     ) : (
                       <>{t("nextSlot")} {nextSlotLabel || "00:00"}</>
                     )}
+                  </span>
+                )}
+                {status === "noReferrer" && (
+                  <span className="flex items-center gap-3 relative z-10">
+                    <PlusCircle className="w-6 h-6" />
+                    {t("pleaseBindReferrer")}
                   </span>
                 )}
               </Button>

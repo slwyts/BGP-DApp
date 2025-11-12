@@ -33,6 +33,7 @@ export default function MePage() {
   const { address, chain } = useAccount();
   const { disconnect } = useDisconnect();
   const { userInfo } = useUserInfo();
+  const [mounted, setMounted] = useState(false);
   
   // 格式化地址
   const displayAddress = address 
@@ -40,20 +41,23 @@ export default function MePage() {
     : "Not Connected";
   const network = chain?.name || "Unknown";
   
-  const [totalBGPClaimed] = useState<number>(() => {
+  const [totalBGPClaimed, setTotalBGPClaimed] = useState<number>(0);
+  
+  useEffect(() => {
+    setMounted(true);
     try {
       const raw: unknown = JSON.parse(
         localStorage.getItem("claimRecords") || "[]",
       );
       if (Array.isArray(raw)) {
-        return raw
+        const total = raw
           .filter(isClaimRecord)
           .filter((r) => r.type === "BGP")
           .reduce((acc, r) => acc + (Number(r.amount) || 0), 0);
+        setTotalBGPClaimed(total);
       }
     } catch {}
-    return 0;
-  });
+  }, []);
 
   // 使用真实合约数据
   const totalInteractions = userInfo ? Number(userInfo.totalInteractionCount) : 0;
@@ -171,7 +175,7 @@ export default function MePage() {
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-blue-500">
-                    {totalBGPClaimed}
+                    {mounted ? totalBGPClaimed : 0}
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {t("totalBGPClaimed")}
