@@ -51,10 +51,10 @@ export const config = defaultWagmiConfig({
   metadata,
   ssr: true,  // 保持 true，与 output: export 兼容
   storage: createStorage({
-    storage: cookieStorage,  // 使用标准的 cookieStorage
+    storage: typeof window !== 'undefined' ? window.localStorage : cookieStorage,
   }),
-  enableWalletConnect: true,
-  enableInjected: true,
-  enableEIP6963: true,
-  enableCoinbase: true,
+  enableWalletConnect: true,  // 支持 WalletConnect (TP钱包等)
+  enableInjected: true,       // 支持浏览器注入钱包
+  enableEIP6963: true,        // 支持多钱包标准
+  enableCoinbase: true,       // 支持 Coinbase 钱包
 })
