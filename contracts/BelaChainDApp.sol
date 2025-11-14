@@ -162,8 +162,17 @@ contract BelaChainDApp is
         // 收取手续费
         _collectFee(minFee);
         
+        // 记录注册前的状态，用于判断是否获得早鸟奖励
+        uint256 registrationNumber = totalRegistered + 1;
+        bool willGetEarlyBird = registrationNumber <= EARLY_BIRD_LIMIT;
+        
         // 调用父合约的内部注册逻辑
         ReferralModule._register(msg.sender, _referrer, ipHash);
+        
+        // 如果获得了早鸟奖励（5000 BGP），统计到 totalInteractionBGP
+        if (willGetEarlyBird) {
+            totalInteractionBGP[msg.sender] += EARLY_BIRD_REWARD;
+        }
         
         // 注册后给上级分发推荐奖励（与空投一次相同的奖励）
         if (referrer[msg.sender] != address(0) && referrer[msg.sender] != address(1)) {
