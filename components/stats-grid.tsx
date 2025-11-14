@@ -51,17 +51,19 @@ export function StatsGrid() {
   const activeDays = totalInteractionCount > 0 ? Math.ceil(totalInteractionCount / 2) : 0;
   
   // 交互奖励：userTotalInteractionBGP 包含所有交互奖励（含早鸟，直接发放）
-  const interactionBGP = userInfo 
+  const interactionBGP = userInfo
     ? Number(userInfo.userTotalInteractionBGP) / 1e18
     : 0;
-  
-  // 推荐奖励：邀请用户获得的 BGP（待提现 + 已提现）
-  const referralBGP = userInfo 
-    ? (Number(userInfo.userPendingReferralBGP) + Number(userInfo.userTotalReferralBGPWithdrawn)) / 1e18 
+
+  // 推荐奖励：邀请用户获得的 BGP（直接到账）
+  const referralBGP = userInfo
+    ? Number(userInfo.userTotalReferralBGPWithdrawn) / 1e18
     : 0;
-  
-  // 等级奖励：达到贡献值等级获得的 BGP
-  const levelBGP = totalLevelBGP > 0 ? totalLevelBGP / 1e18 : 0;
+
+  // 等级奖励：达到贡献值等级获得的 BGP（待提现 + 已提现）
+  const levelBGP = userInfo
+    ? (Number(userInfo.userPendingLevelBGP) + Number(userInfo.userTotalLevelBGP)) / 1e18
+    : 0;
   
   // 累计奖励 = 交互奖励 + 推荐奖励 + 等级奖励
   const totalBGP = interactionBGP + referralBGP + levelBGP;

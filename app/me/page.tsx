@@ -34,9 +34,9 @@ export default function MePage() {
   const totalIncome = mounted && userInfo 
     ? (Number(userInfo.userTotalUSDTWithdrawn) + Number(userInfo.userPendingUSDT)) / 1e6 
     : 0;
-  // 累计领取BGP = 交互BGP + 等级BGP + 已提现推荐BGP
-  const totalBGPClaimed = mounted && userInfo 
-    ? (Number(userInfo.userTotalInteractionBGP) + Number(userInfo.userTotalLevelBGP) + Number(userInfo.userTotalReferralBGPWithdrawn)) / 1e18
+  // 累计领取BGP = 交互BGP + 等级BGP(待提现+已提现) + 推荐BGP(直接发放)
+  const totalBGPClaimed = mounted && userInfo
+    ? (Number(userInfo.userTotalInteractionBGP) + Number(userInfo.userPendingLevelBGP) + Number(userInfo.userTotalLevelBGP) + Number(userInfo.userTotalReferralBGPWithdrawn)) / 1e18
     : 0;
 
   useEffect(() => {

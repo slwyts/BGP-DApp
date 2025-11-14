@@ -138,9 +138,14 @@ abstract contract InteractionModule is Ownable {
         (uint256 currentDay, uint8 currentSlot) = _getCurrentSlot();
         DailyInteraction memory interaction = userInteractions[user];
         
-        // 计算 UTC+8 时区的当天 00:00 时间戳
+        // 计算 UTC+8 时区的当天 00:00 时间戳（UTC 时间）
+        // 步骤：
+        // 1. 将当前 UTC 时间转为 UTC+8
+        // 2. 计算 UTC+8 当天的 00:00（以天数计算）
+        // 3. 减去偏移量，得到对应的 UTC 时间戳
         uint256 adjustedTimestamp = block.timestamp + TIMEZONE_OFFSET;
-        uint256 dayStartTimestamp = (adjustedTimestamp / 1 days) * 1 days - TIMEZONE_OFFSET;
+        uint256 daysSinceEpoch = adjustedTimestamp / 1 days;
+        uint256 dayStartTimestamp = (daysSinceEpoch * 1 days) - TIMEZONE_OFFSET;
         
         // 如果是新的一天，可以交互
         if (interaction.lastInteractionDay < currentDay) {

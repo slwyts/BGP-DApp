@@ -8,13 +8,13 @@ export interface UserInfo {
   directReferralCount: bigint;
   userTeamSize: bigint;
   userContribution: bigint;
-  userPendingReferralBGP: bigint; // 待提现的推荐奖励BGP
-  userTotalReferralBGPWithdrawn: bigint; // 已提现的推荐奖励BGP
+  userPendingLevelBGP: bigint; // 待提现的等级奖励BGP
+  userTotalReferralBGPWithdrawn: bigint; // 推荐奖励已发放BGP（直接到账）
   // 等级信息
   currentLevel: number;
   userPendingUSDT: bigint;
   userTotalUSDTWithdrawn: bigint;
-  userTotalLevelBGP: bigint;
+  userTotalLevelBGP: bigint; // 等级奖励已提现BGP
   // 交互信息
   todayInteractionCount: number;
   totalInteractionCount: bigint;

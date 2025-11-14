@@ -164,6 +164,11 @@ contract BelaChainDApp is
         
         // 调用父合约的内部注册逻辑
         ReferralModule._register(msg.sender, _referrer, ipHash);
+        
+        // 注册后给上级分发推荐奖励（与空投一次相同的奖励）
+        if (referrer[msg.sender] != address(0) && referrer[msg.sender] != address(1)) {
+            ReferralModule._distributeReferralRewards(msg.sender);
+        }
     }
     
     /**
@@ -194,13 +199,13 @@ contract BelaChainDApp is
             uint256 directReferralCount,
             uint256 userTeamSize,
             uint256 userContribution,
-            uint256 userPendingReferralBGP,
-            uint256 userTotalReferralBGPWithdrawn,
+            uint256 userPendingLevelBGP,        // 改：等级奖励待提现BGP
+            uint256 userTotalReferralBGPWithdrawn,  // 推荐奖励已发放BGP（直接到账）
             // 等级信息
             uint8 currentLevel,
             uint256 userPendingUSDT,
             uint256 userTotalUSDTWithdrawn,
-            uint256 userTotalLevelBGP,
+            uint256 userTotalLevelBGP,          // 等级奖励已提现BGP
             // 交互信息
             uint8 todayInteractionCount,
             uint256 totalInteractionCount,
@@ -213,13 +218,13 @@ contract BelaChainDApp is
             directReferrals[user].length,
             teamSize[user],
             contribution[user],
-            pendingReferralBGP[user],
-            totalReferralBGPWithdrawn[user],
+            pendingLevelBGP[user],              // 改：返回等级奖励待提现BGP
+            totalReferralBGPWithdrawn[user],    // 推荐奖励总发放（直接到账）
             // 等级信息
             userLevel[user],
             pendingUSDT[user],
             totalUSDTWithdrawn[user],
-            totalLevelBGP[user],
+            totalLevelBGP[user],                // 等级奖励已提现BGP
             // 交互信息
             this.getTodayInteractionCount(user),
             this.getTotalInteractionCount(user),

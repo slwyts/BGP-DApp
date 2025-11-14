@@ -30,11 +30,12 @@ export function useChainCountdown({
   }, [blockTimestamp]);
 
   const targetTime = useMemo(() => {
-    if (!enabled || !nextSlotTime || canInteract) {
+    if (!enabled || !nextSlotTime) {
       return null;
     }
+    // 移除 canInteract 的判断，让倒计时自然归零
     return nextSlotTime * 1000 - chainOffset;
-  }, [enabled, nextSlotTime, canInteract, chainOffset]);
+  }, [enabled, nextSlotTime, chainOffset]);
 
   useEffect(() => {
     if (!targetTime) {
@@ -44,13 +45,19 @@ export function useChainCountdown({
 
     const tick = () => {
       const diffMs = targetTime - Date.now();
-      setRemainingSeconds(Math.max(0, Math.round(diffMs / 1000)));
+      const seconds = Math.max(0, Math.round(diffMs / 1000));
+      setRemainingSeconds(seconds);
+      
+      // 如果倒计时到0且 canInteract 还是 false，说明状态还没更新，保持在0
+      if (seconds === 0 && !canInteract) {
+        setRemainingSeconds(0);
+      }
     };
 
     tick();
     const id = window.setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, [targetTime]);
+  }, [targetTime, canInteract]);
 
   return remainingSeconds;
 }

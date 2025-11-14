@@ -51,12 +51,12 @@ export function useUserInfo() {
     directReferralCount: (data as any[])[1],
     userTeamSize: (data as any[])[2],
     userContribution: (data as any[])[3],
-    userPendingReferralBGP: (data as any[])[4], // 待提现的推荐奖励BGP
-    userTotalReferralBGPWithdrawn: (data as any[])[5], // 已提现的推荐奖励BGP
+    userPendingLevelBGP: (data as any[])[4], // 待提现的等级奖励BGP
+    userTotalReferralBGPWithdrawn: (data as any[])[5], // 推荐奖励已发放BGP（直接到账）
     currentLevel: (data as any[])[6],
     userPendingUSDT: (data as any[])[7],
     userTotalUSDTWithdrawn: (data as any[])[8],
-    userTotalLevelBGP: (data as any[])[9],
+    userTotalLevelBGP: (data as any[])[9], // 等级奖励已提现BGP
     todayInteractionCount: (data as any[])[10],
     totalInteractionCount: (data as any[])[11],
     userTotalInteractionBGP: (data as any[])[12], // 总交互BGP（直接发放）
@@ -296,12 +296,9 @@ export function useWithdrawUSDT() {
 }
 
 /**
- * 提现交互奖励BGP
+ * 提现等级奖励BGP
  */
-/**
- * 提现推荐奖励BGP
- */
-export function useWithdrawReferralBGP() {
+export function useWithdrawLevelBGP() {
   const { chainId } = useAccount()
   const addresses = chainId ? getContractAddresses() : null
   const { writeContract, data: hash, isPending, error } = useWriteContract()
@@ -312,11 +309,11 @@ export function useWithdrawReferralBGP() {
 
   const withdrawBGP = () => {
     if (!addresses) return
-    
+
     writeContract({
       address: addresses.dapp as `0x${string}`,
       abi: DAppABI,
-      functionName: 'withdrawReferralBGP',
+      functionName: 'withdrawLevelBGP',
       args: [],
     })
   }
@@ -332,7 +329,7 @@ export function useWithdrawReferralBGP() {
 }
 
 // 向后兼容的别名
-export const useWithdrawInteractionBGP = useWithdrawReferralBGP
+export const useWithdrawInteractionBGP = useWithdrawLevelBGP
 
 /**
  * 转账 BGP
@@ -405,6 +402,7 @@ export function useInteractionStatus() {
     args: [address],
     query: {
       enabled: !!address && !!addresses,
+      refetchInterval: 2000, // 每2秒自动刷新一次，确保实时更新
     },
   })
 

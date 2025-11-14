@@ -147,21 +147,27 @@ abstract contract ReferralModule is Ownable {
      */
     function _distributeReferralRewards(address user) internal {
         address current = referrer[user];
-        
+
         for (uint8 level = 1; level <= 15 && current != address(0); level++) {
             // 检查是否有足够的直推人数来获得该层级的奖励
             uint256 directCount = directReferrals[current].length;
-            
+
             // 直推N人拿N代
             if (directCount >= level) {
                 ReferralReward memory reward = levelRewards[level];
-                
-                // 累积推荐奖励BGP（不立即发放）
-                pendingReferralBGP[current] += reward.bgpAmount;
-                
+
+                // 直接发放BGP到账户（修改：从累积到待提现改为直接转账）
+                require(
+                    _getBGPToken().transfer(current, reward.bgpAmount),
+                    "BGP transfer failed"
+                );
+
+                // 记录已发放的推荐奖励BGP（用于统计）
+                totalReferralBGPWithdrawn[current] += reward.bgpAmount;
+
                 // 增加贡献值
                 contribution[current] += reward.contributionValue;
-                
+
                 emit ReferralRewardDistributed(
                     current,
                     user,
@@ -170,7 +176,7 @@ abstract contract ReferralModule is Ownable {
                     reward.contributionValue
                 );
             }
-            
+
             // 向上查找下一级推荐人
             current = referrer[current];
         }

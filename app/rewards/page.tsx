@@ -61,8 +61,8 @@ export default function RewardsPage() {
   const userCurrentLevel = userInfo ? Number(userInfo.currentLevel) : 0;
   const withdrawableUSDT = userInfo ? Number(userInfo.userPendingUSDT) / 1e6 : 0; // USDT 6位精度
   const totalUSDTWithdrawn = userInfo ? Number(userInfo.userTotalUSDTWithdrawn) / 1e6 : 0;
-  const totalLevelBGP = userInfo ? Number(userInfo.userTotalLevelBGP) / 1e18 : 0; // 等级奖励获得的BGP
-  const withdrawableBGP = userInfo ? Number(userInfo.userPendingReferralBGP) / 1e18 : 0; // 待提现的推荐奖励BGP
+  const totalLevelBGP = userInfo ? Number(userInfo.userTotalLevelBGP) / 1e18 : 0; // 等级奖励已提现BGP
+  const withdrawableBGP = userInfo ? Number(userInfo.userPendingLevelBGP) / 1e18 : 0; // 待提现的等级奖励BGP
 
   const playSound = () => {
     try {

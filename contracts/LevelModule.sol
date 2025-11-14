@@ -38,7 +38,8 @@ abstract contract LevelModule is Ownable {
     mapping(address => mapping(uint8 => bool)) public levelClaimed; // 是否领取过该等级奖励
     mapping(address => uint256) public pendingUSDT; // 待提现 USDT (6位精度)
     mapping(address => uint256) public totalUSDTWithdrawn; // 已提现 USDT (6位精度)
-    mapping(address => uint256) public totalLevelBGP; // 等级奖励总 BGP (18位精度)
+    mapping(address => uint256) public pendingLevelBGP; // 待提现的等级奖励 BGP (18位精度)
+    mapping(address => uint256) public totalLevelBGP; // 已提现的等级奖励 BGP (18位精度)
     
     // 配置
     uint256 public constant MIN_WITHDRAW_USDT = 10 * 10**6; // 最低提现 10 USDT (6位精度)
@@ -114,14 +115,10 @@ abstract contract LevelModule is Ownable {
         
         // 标记已领取
         levelClaimed[msg.sender][level] = true;
-        
-        // 发放 BGP 奖励（使用 transfer 而不是 mint）
-        require(
-            _getBGPToken().transfer(msg.sender, levelData.bgpReward),
-            "BGP transfer failed"
-        );
-        totalLevelBGP[msg.sender] += levelData.bgpReward;
-        
+
+        // 累积 BGP 奖励（不立即发放，改为待提现）
+        pendingLevelBGP[msg.sender] += levelData.bgpReward;
+
         // 累积 USDT（不立即发放）
         pendingUSDT[msg.sender] += levelData.usdtReward;
         
@@ -154,22 +151,24 @@ abstract contract LevelModule is Ownable {
     }
     
     /**
-     * @dev 提现推荐奖励BGP（大于0即可提）
+     * @dev 提现等级奖励BGP（大于0即可提）
      */
-    function withdrawReferralBGP() external {
-        uint256 amount = _getPendingReferralBGP(msg.sender);
-        require(amount > 0, "No pending referral BGP");
-        
+    function withdrawLevelBGP() external {
+        uint256 amount = pendingLevelBGP[msg.sender];
+        require(amount > 0, "No pending level BGP");
+
         // 清零待提现金额
-        _clearPendingReferralBGP(msg.sender);
-        
+        pendingLevelBGP[msg.sender] = 0;
+        totalLevelBGP[msg.sender] += amount;
+
         // 转账 BGP
         require(
             _getBGPToken().transfer(msg.sender, amount),
             "BGP transfer failed"
         );
     }
-    
+
+
     /**
      * @dev 获取用户当前等级
      */
