@@ -2,23 +2,7 @@
 pragma solidity ^0.8.30;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-
-/**
- * @title Chainlink Price Feed Interface
- */
-interface AggregatorV3Interface {
-    function latestRoundData()
-        external
-        view
-        returns (
-            uint80 roundId,
-            int256 answer,
-            uint256 startedAt,
-            uint256 updatedAt,
-            uint80 answeredInRound
-        );
-    function decimals() external view returns (uint8);
-}
+import "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 
 /**
  * @title FeeModule
