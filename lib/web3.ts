@@ -19,16 +19,28 @@ const localhost = defineChain({
   },
 })
 
-// 根据环境变量选择支持的链
+// 根据环境变量选择网络
 const networkMode = process.env.NEXT_PUBLIC_NETWORK || 'arbitrum'
+
+// 根据网络模式配置链和传输
 let chains: readonly [typeof localhost] | readonly [typeof arbitrumSepolia] | readonly [typeof arbitrum]
+let transports: Record<number, ReturnType<typeof http>>
 
 if (networkMode === 'localnet') {
   chains = [localhost] as const
+  transports = {
+    [localhost.id]: http(),
+  }
 } else if (networkMode === 'arbitrum-sepolia') {
   chains = [arbitrumSepolia] as const
+  transports = {
+    [arbitrumSepolia.id]: http(),
+  }
 } else {
   chains = [arbitrum] as const
+  transports = {
+    [arbitrum.id]: http(),
+  }
 }
 
 // 创建 Wagmi 配置 (最小化 - 只支持浏览器钱包)
@@ -37,10 +49,6 @@ export const config = createConfig({
   connectors: [
     injected(), // MetaMask, Rabby, TP钱包浏览器版等
   ],
-  transports: {
-    [localhost.id]: http(),
-    [arbitrumSepolia.id]: http(),
-    [arbitrum.id]: http(),
-  },
+  transports,
   ssr: true,
 })
