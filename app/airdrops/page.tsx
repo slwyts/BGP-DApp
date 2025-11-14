@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useScroll, useTransform } from "motion/react";
-import { Timer, Sparkles, Zap, Rocket, PlusCircle, Gift } from "lucide-react";
+import { Timer, Sparkles, Zap, Rocket, PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GlobeAirdrop } from "@/components/globe-airdrop";
 import { WarpBackground } from "@/components/ui/warp-background";
@@ -10,8 +10,8 @@ import { useLocale } from "@/components/locale-provider";
 import { ClaimAnimationOverlay } from "@/components/claim-animation-overlay";
 import { DailyRewardAnimation } from "@/components/daily-reward-animation";
 import { StatsGrid } from "@/components/stats-grid";
-import { useEffect, useState, useRef, useMemo, useCallback } from "react";
-import { useInteractionStatus, useInteract, useUserInfo, useGlobalStats, useBlockTimestamp } from "@/lib/hooks/use-contracts";
+import { useEffect, useState, useRef, useCallback } from "react";
+import { useInteractionStatus, useInteract, useUserInfo, useGlobalStats } from "@/lib/hooks/use-contracts";
 import { getContractAddresses } from "@/lib/contracts/addresses";
 import { useWalletClient } from "wagmi";
 
@@ -29,12 +29,11 @@ export default function HomePage() {
   const [earnedReward, setEarnedReward] = useState(2000); // 保存本次获得的奖励
 
   // 使用真实合约数据
-  const { canInteract, nextSlotTime, todayCount, refetch: refetchStatus } = useInteractionStatus();
+  const { canInteract, todayCount, refetch: refetchStatus } = useInteractionStatus();
   const { interact, isPending, isConfirming, isSuccess } = useInteract();
   const { data: walletClient } = useWalletClient();
   const { userInfo, refetch: refetchUserInfo } = useUserInfo();
   const { refetch: refetchGlobalStats } = useGlobalStats();
-  const { timestamp: blockTimestamp } = useBlockTimestamp();
   
   // 检查用户是否已绑定邀请人
   const hasReferrer = userInfo?.userReferrer && userInfo.userReferrer !== '0x0000000000000000000000000000000000000000';
@@ -56,15 +55,6 @@ export default function HomePage() {
   const headerY = useTransform(scrollYProgress, [0, 0.2], [0, -20]);
 
   const dailyLimit = 2;
-
-  const formatCooldown = (seconds: number) => {
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
-    if (h > 0) return `${h}h ${m}m`;
-    if (m > 0) return `${m}m ${s}s`;
-    return `${s}s`;
-  };
 
   const playSound = () => {
     try {
@@ -88,28 +78,6 @@ export default function HomePage() {
   }, []);
 
   // 计算倒计时（使用区块链时间）
-  const [cooldown, setCooldown] = useState(0);
-  useEffect(() => {
-    if (!nextSlotTime || canInteract || !blockTimestamp) {
-      setCooldown(0);
-      return;
-    }
-    
-    // 计算初始剩余时间（基于区块链时间）
-    const initialRemaining = Math.max(0, nextSlotTime - blockTimestamp);
-    const startTime = Date.now();
-    
-    const updateCooldown = () => {
-      const elapsed = Math.floor((Date.now() - startTime) / 1000);
-      const diff = Math.max(0, initialRemaining - elapsed);
-      setCooldown(diff);
-    };
-    
-    updateCooldown();
-    const id = setInterval(updateCooldown, 1000);
-    return () => clearInterval(id);
-  }, [nextSlotTime, canInteract, blockTimestamp ?? 0]);
-
   // 交互成功后的处理
   useEffect(() => {
     if (isSuccess) {
@@ -128,14 +96,6 @@ export default function HomePage() {
       }, 1200);
     }
   }, [isSuccess, earnedReward, refetchStatus, refetchUserInfo, refetchGlobalStats]);
-
-  const nextSlotLabel = useMemo(() => {
-    if (!nextSlotTime) return "";
-    const date = new Date(nextSlotTime * 1000);
-    const h = date.getHours();
-    const m = date.getMinutes();
-    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-  }, [nextSlotTime]);
 
   const onClaim = (payout?: { usdt?: number; bgp?: number }) => {
     playSound();
@@ -346,13 +306,7 @@ export default function HomePage() {
                 {status === "cooldown" && (
                   <span className="flex items-center gap-3 relative z-10">
                     <Timer className="w-6 h-6" />
-                    {cooldown > 0 ? (
-                      <>
-                        {t("cooldown")} · {formatCooldown(cooldown)}
-                      </>
-                    ) : (
-                      <>{t("nextSlot")} {nextSlotLabel || "00:00"}</>
-                    )}
+                    {t("cooldown")}
                   </span>
                 )}
                 {status === "noReferrer" && (

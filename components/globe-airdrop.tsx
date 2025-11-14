@@ -7,6 +7,7 @@ import { centerLatLon } from "@/components/ui/globe-utils";
 import { useLocale } from "@/components/locale-provider";
 import { useTheme } from "next-themes";
 import { useInteractionStatus, useBlockTimestamp } from "@/lib/hooks/use-contracts";
+import { useChainCountdown } from "@/lib/hooks/use-chain-countdown";
 
 const AIRDROP_CONFIG = {
   circleTimeSeconds: 120,
@@ -36,10 +37,12 @@ export function GlobeAirdrop() {
   // 获取倒计时数据和区块链时间
   const { canInteract, nextSlotTime } = useInteractionStatus();
   const { timestamp: blockTimestamp } = useBlockTimestamp();
-  
-  const [countdown, setCountdown] = useState(
-    AIRDROP_CONFIG.airdropIntervalSeconds,
-  );
+  const countdown = useChainCountdown({
+    nextSlotTime,
+    canInteract,
+    blockTimestamp,
+    enabled: !!nextSlotTime,
+  });
   
   // 格式化倒计时显示 - HH:MM:SS 格式
   const formatCountdown = (seconds: number) => {
@@ -210,33 +213,6 @@ export function GlobeAirdrop() {
     [computeLocusPoints, ringPhi, renderTilt],
   );
 
-  useEffect(() => {
-    // 使用区块链时间计算倒计时
-    if (!nextSlotTime || canInteract || !blockTimestamp) {
-      setCountdown(0);
-      return;
-    }
-    
-    // 计算初始剩余时间（基于区块链时间）
-    const initialRemaining = Math.max(0, nextSlotTime - blockTimestamp);
-    const startTime = Date.now();
-    
-    // 更新倒计时函数
-    const updateCountdown = () => {
-      const elapsed = Math.floor((Date.now() - startTime) / 1000);
-      const remaining = Math.max(0, initialRemaining - elapsed);
-      setCountdown(remaining);
-    };
-    
-    // 立即更新一次
-    updateCountdown();
-    
-    // 每秒更新
-    const interval = setInterval(updateCountdown, 1000);
-    
-    return () => clearInterval(interval);
-  }, [nextSlotTime, canInteract, blockTimestamp ?? 0]); // 使用 ?? 0 确保数组大小一致
-
   // 原有的空投动画效果保持不变
   useEffect(() => {
     const now = Date.now();
@@ -250,8 +226,6 @@ export function GlobeAirdrop() {
       const msLeft = nextAirdropAtRef.current - nowTick;
 
       // 移除原来的倒计时更新，改用上面的真实数据
-      // setCountdown(Math.max(0, Math.ceil(msLeft / 1000)));
-
       if (msLeft <= 0) {
         do {
           nextAirdropAtRef.current +=
