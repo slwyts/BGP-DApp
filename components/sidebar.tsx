@@ -21,7 +21,7 @@ import { useLocale } from "@/components/locale-provider";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { useAccount, useDisconnect } from "wagmi";
+import { useAccount, useDisconnect, useConnect } from "wagmi";
 import { useBGPBalance } from "@/lib/hooks/use-contracts";
 
 type SidebarProps = {
@@ -36,18 +36,10 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const { disconnect } = useDisconnect();
   const { balance } = useBGPBalance();
   const [mounted, setMounted] = useState(false);
-  const [openWeb3Modal, setOpenWeb3Modal] = useState<(() => void) | null>(null);
+  const { connect, connectors } = useConnect();
 
   useEffect(() => {
     setMounted(true);
-    // 只在客户端导入 useWeb3Modal
-    import('@web3modal/wagmi/react').then((module) => {
-      // 通过全局事件触发
-      setOpenWeb3Modal(() => () => {
-        const event = new CustomEvent('w3m-open');
-        window.dispatchEvent(event);
-      });
-    });
   }, []);
 
   const items = [

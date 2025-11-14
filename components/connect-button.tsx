@@ -1,19 +1,19 @@
 'use client'
 
-import { useWeb3Modal } from '@web3modal/wagmi/react'
-import { useAccount } from 'wagmi'
+import { useAccount, useConnect, useDisconnect } from 'wagmi'
 import { Button } from '@/components/ui/button'
 import { Wallet } from 'lucide-react'
 
 export function ConnectButton() {
-  const { open } = useWeb3Modal()
   const { address, isConnected } = useAccount()
+  const { connect, connectors } = useConnect()
+  const { disconnect } = useDisconnect()
 
   if (isConnected && address) {
     return (
       <Button
         variant="outline"
-        onClick={() => open()}
+        onClick={() => disconnect()}
         className="gap-2"
       >
         <Wallet className="h-4 w-4" />
@@ -23,7 +23,13 @@ export function ConnectButton() {
   }
 
   return (
-    <Button onClick={() => open()} className="gap-2">
+    <Button 
+      onClick={() => {
+        const connector = connectors[0]
+        if (connector) connect({ connector })
+      }} 
+      className="gap-2"
+    >
       <Wallet className="h-4 w-4" />
       Connect Wallet
     </Button>

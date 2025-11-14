@@ -1,12 +1,7 @@
-import { defaultWagmiConfig } from '@web3modal/wagmi/react/config'
-import { cookieStorage, createStorage } from 'wagmi'
+import { http, createConfig } from 'wagmi'
 import { arbitrum, arbitrumSepolia } from 'wagmi/chains'
 import { defineChain } from 'viem'
-
-// 获取 WalletConnect 项目 ID（需要从 https://cloud.walletconnect.com 获取）
-export const projectId = process.env.NEXT_PUBLIC_PROJECT_ID || ''
-
-if (!projectId) throw new Error('需要设置 NEXT_PUBLIC_PROJECT_ID')
+import { injected } from 'wagmi/connectors'
 
 // 定义本地网络
 const localhost = defineChain({
@@ -24,14 +19,6 @@ const localhost = defineChain({
   },
 })
 
-// 配置元数据
-const metadata = {
-  name: 'BelaChain DApp',
-  description: 'BelaChain 去中心化应用 - BGP 代币生态系统',
-  url: 'https://belachain.io', // 替换为你的域名
-  icons: ['https://avatars.githubusercontent.com/u/37784886']
-}
-
 // 根据环境变量选择支持的链
 const networkMode = process.env.NEXT_PUBLIC_NETWORK || 'arbitrum'
 let chains: readonly [typeof localhost] | readonly [typeof arbitrumSepolia] | readonly [typeof arbitrum]
@@ -44,15 +31,16 @@ if (networkMode === 'localnet') {
   chains = [arbitrum] as const
 }
 
-// 创建 Wagmi 配置
-export const config = defaultWagmiConfig({
+// 创建 Wagmi 配置 (最小化 - 只支持浏览器钱包)
+export const config = createConfig({
   chains,
-  projectId,
-  metadata,
-  ssr: true,  // 保持 true，与 output: export 兼容
-  storage: createStorage({ storage: cookieStorage }),
-  enableWalletConnect: false,  // 支持 WalletConnect (TP钱包等)
-  enableInjected: true,       // 支持浏览器注入钱包
-  enableEIP6963: false,        // 支持多钱包标准
-  enableCoinbase: false,       // 支持 Coinbase 钱包
+  connectors: [
+    injected(), // MetaMask, Rabby, TP钱包浏览器版等
+  ],
+  transports: {
+    [localhost.id]: http(),
+    [arbitrumSepolia.id]: http(),
+    [arbitrum.id]: http(),
+  },
+  ssr: true,
 })
