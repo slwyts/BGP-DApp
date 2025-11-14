@@ -7,26 +7,8 @@ import { Calendar, Crown, TrendingUp, Activity } from "lucide-react";
 import { useLocale } from "@/components/locale-provider";
 import { Particles } from "@/components/ui/particles";
 import { useEffect, useState } from "react";
-import { ActivityFeed } from "@/components/activity-feed";
 import { useAccount, useDisconnect } from "wagmi";
 import { useUserInfo } from "@/lib/hooks/use-contracts";
-
-type ClaimRecord = {
-  type: string;
-  amount: number | string | null | undefined;
-};
-
-function isClaimRecord(value: unknown): value is ClaimRecord {
-  if (!value || typeof value !== "object") return false;
-  const v = value as { type?: unknown; amount?: unknown };
-  const typeOk = typeof v.type === "string";
-  const amountOk =
-    typeof v.amount === "number" ||
-    typeof v.amount === "string" ||
-    typeof v.amount === "undefined" ||
-    v.amount === null;
-  return typeOk && amountOk;
-}
 
 export default function MePage() {
   const { t } = useLocale();
@@ -41,30 +23,20 @@ export default function MePage() {
     : "Not Connected";
   const network = chain?.name || "Unknown";
   
-  const [totalBGPClaimed, setTotalBGPClaimed] = useState<number>(0);
-  
   useEffect(() => {
     setMounted(true);
-    try {
-      const raw: unknown = JSON.parse(
-        localStorage.getItem("claimRecords") || "[]",
-      );
-      if (Array.isArray(raw)) {
-        const total = raw
-          .filter(isClaimRecord)
-          .filter((r) => r.type === "BGP")
-          .reduce((acc, r) => acc + (Number(r.amount) || 0), 0);
-        setTotalBGPClaimed(total);
-      }
-    } catch {}
   }, []);
 
   // 使用真实合约数据
-  const totalInteractions = userInfo ? Number(userInfo.totalInteractionCount) : 0;
-  const loginDays = Math.ceil(totalInteractions / 2); // 每天最多2次交互,计算活跃天数
-  const currentLevel = userInfo ? Number(userInfo.currentLevel) : 0;
-  const totalIncome = userInfo 
+  const totalInteractions = mounted && userInfo ? Number(userInfo.totalInteractionCount) : 0;
+  const loginDays = mounted && userInfo ? Math.ceil(totalInteractions / 2) : 0; // 每天最多2次交互,计算活跃天数
+  const currentLevel = mounted && userInfo ? Number(userInfo.currentLevel) : 0;
+  const totalIncome = mounted && userInfo 
     ? (Number(userInfo.userTotalUSDTWithdrawn) + Number(userInfo.userPendingUSDT)) / 1e6 
+    : 0;
+  // 累计领取BGP = 交互BGP + 等级BGP + 已提现推荐BGP
+  const totalBGPClaimed = mounted && userInfo 
+    ? (Number(userInfo.userTotalInteractionBGP) + Number(userInfo.userTotalLevelBGP) + Number(userInfo.userTotalReferralBGPWithdrawn)) / 1e18
     : 0;
 
   useEffect(() => {
@@ -175,7 +147,7 @@ export default function MePage() {
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-blue-500">
-                    {mounted ? totalBGPClaimed : 0}
+                    {totalBGPClaimed.toLocaleString()}
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {t("totalBGPClaimed")}
@@ -204,10 +176,11 @@ export default function MePage() {
           </motion.div>
           {/* Assets section removed per spec */}
 
-          <div className="mt-6">
-            {/* <h2 className="text-lg font-semibold mb-3">{t("recentTransactions")}</h2> */}
+          {/* 最近交易板块 - 暂时注释，以后可能还有用 */}
+          {/* <div className="mt-6">
+            <h2 className="text-lg font-semibold mb-3">{t("recentTransactions")}</h2>
             <ActivityFeed />
-          </div>
+          </div> */}
         </div>
       </div>
     </div>
