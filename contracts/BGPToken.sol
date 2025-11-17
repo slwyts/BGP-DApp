@@ -6,15 +6,19 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import "./AntiSybil.sol"; 
 
 contract BGPToken is ERC20, ERC20Burnable {
-    uint256 public constant MAX_SUPPLY = 10_000_000_000 * 10**18;
-    IAntiSybil public immutable antiSybilContract;
+    
+    uint256 private constant MAX_SUPPLY = 10_000_000_000 * 10**18;
+    IAntiSybil private immutable antiSybilContract;
+
+    error AddressBlacklisted(address account);
+    error ZeroAddress();
 
     constructor(
         address _antiSybilAddress
     ) 
         ERC20("BelaChain Growth Points", "BGP") 
     {
-        require(_antiSybilAddress != address(0), "BGPToken: AntiSybil address cannot be zero");
+        if (_antiSybilAddress == address(0)) revert ZeroAddress();
         antiSybilContract = IAntiSybil(_antiSybilAddress);
         _update(address(0), msg.sender, MAX_SUPPLY);
     }
@@ -24,8 +28,8 @@ contract BGPToken is ERC20, ERC20Burnable {
         address to,
         uint256 value
     ) internal override(ERC20) {
-        require(!antiSybilContract.isBlacklisted(from), "BGPToken: Sender is blacklisted");
-        require(!antiSybilContract.isBlacklisted(to), "BGPToken: Recipient is blacklisted");
+        if (antiSybilContract.isBlacklisted(from)) revert AddressBlacklisted(from);
+        if (antiSybilContract.isBlacklisted(to)) revert AddressBlacklisted(to);
 
         super._update(from, to, value);
     }
