@@ -3,10 +3,9 @@ pragma solidity ^0.8.30;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "./AntiSybil.sol"; 
 
-contract BGPToken is ERC20, ERC20Burnable, Ownable {
+contract BGPToken is ERC20, ERC20Burnable {
     uint256 public constant MAX_SUPPLY = 10_000_000_000 * 10**18;
     IAntiSybil public immutable antiSybilContract;
 
@@ -14,7 +13,6 @@ contract BGPToken is ERC20, ERC20Burnable, Ownable {
         address _antiSybilAddress
     ) 
         ERC20("BelaChain Growth Points", "BGP") 
-        Ownable(msg.sender)
     {
         require(_antiSybilAddress != address(0), "BGPToken: AntiSybil address cannot be zero");
         antiSybilContract = IAntiSybil(_antiSybilAddress);

@@ -199,12 +199,8 @@ async function main() {
   await tx7.wait();
   console.log("  ✅ AntiSybil 所有权转移完成");
 
-  const tx8 = await bgpToken.transferOwnership(ownerAddress);
+  const tx8 = await dapp.transferOwnership(ownerAddress);
   await tx8.wait();
-  console.log("  ✅ BGPToken 所有权转移完成");
-
-  const tx9 = await dapp.transferOwnership(ownerAddress);
-  await tx9.wait();
   console.log("  ✅ BelaChainDApp 所有权转移完成");
   console.log();
 
@@ -239,8 +235,6 @@ NEXT_PUBLIC_RPC_URL=${config.rpcUrl}
   const envPath = path.join(__dirname, "..", config.envFileName);
   fs.writeFileSync(envPath, envContent);
   console.log(`✅ ${config.envFileName} 文件已生成\n`);
-
-  // 10. 打印部署摘要
   console.log("=" .repeat(60));
   console.log(`📋 部署摘要 (${env.toUpperCase()})`);
   console.log("=" .repeat(60));
