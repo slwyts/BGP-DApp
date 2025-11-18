@@ -1,9 +1,12 @@
 import type { NextConfig } from "next";
 
-const nextConfig = {
+const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-} as NextConfig;
+  turbopack: {
+    root: __dirname,
+  },
+};
 
 export default nextConfig;

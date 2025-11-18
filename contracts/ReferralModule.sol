@@ -4,6 +4,7 @@ pragma solidity ^0.8.30;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./BGPToken.sol";
 import "./AntiSybil.sol";
+import "./RewardHistoryModule.sol";
 
 /**
  * @title ReferralModule
@@ -12,7 +13,7 @@ import "./AntiSybil.sol";
  * - 直推N人拿N代奖励
  * - 按层级分配 BGP 和贡献值
  */
-abstract contract ReferralModule is Ownable {
+abstract contract ReferralModule is Ownable, RewardHistoryModule {
     // 需要主合约提供这些函数
     function _getBGPToken() internal view virtual returns (BGPToken);
     function _getAntiSybil() internal view virtual returns (IAntiSybil);
@@ -136,6 +137,7 @@ abstract contract ReferralModule is Ownable {
                 _getBGPToken().transfer(user, EARLY_BIRD_REWARD),
                 "Early bird reward transfer failed"
             );
+            _recordReward(user, RewardCategory.EarlyBird, RewardToken.BGP, EARLY_BIRD_REWARD);
         }
 
         emit Registered(user, actualReferrer, isEarlyBird, bgpReward, totalRegistered);
@@ -161,6 +163,8 @@ abstract contract ReferralModule is Ownable {
                     _getBGPToken().transfer(current, reward.bgpAmount),
                     "BGP transfer failed"
                 );
+
+                _recordReward(current, RewardCategory.Referral, RewardToken.BGP, reward.bgpAmount);
 
                 // 记录已发放的推荐奖励BGP（用于统计）
                 totalReferralBGPWithdrawn[current] += reward.bgpAmount;

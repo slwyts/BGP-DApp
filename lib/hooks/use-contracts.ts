@@ -5,7 +5,7 @@ import { parseEther, formatEther, type Abi } from 'viem'
 import { getContractAddresses } from '../contracts/addresses'
 import BelaChainDAppArtifact from '../../artifacts/contracts/BelaChainDApp.sol/BelaChainDApp.json'
 import BGPTokenArtifact from '../../artifacts/contracts/BGPToken.sol/BGPToken.json'
-import type { UserInfo } from '../contracts/types'
+import type { UserInfo, RewardRecord, RewardCategoryType, RewardTokenType } from '../contracts/types'
 
 const DAppABI = BelaChainDAppArtifact.abi as Abi
 const BGPTokenABI = BGPTokenArtifact.abi as Abi
@@ -442,6 +442,49 @@ export function useGlobalStats() {
     bgpTotalSupply: result?.[2] ? formatEther(result[2]) : '0',
     usdtBalance: result?.[3] ? Number(result[3]) / 1e6 : 0, // USDT 6位精度
     contractBalance: result?.[4] ? formatEther(result[4]) : '0',
+    isLoading,
+    error,
+    refetch,
+  }
+}
+
+/**
+ * 获取奖励记录
+ */
+export function useRewardHistory(limit = 50) {
+  const { address, chainId } = useAccount()
+  const addresses = chainId ? getContractAddresses() : null
+  const args = address ? [address, BigInt(limit)] : undefined
+
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: addresses?.dapp as `0x${string}`,
+    abi: DAppABI,
+    functionName: 'getLatestRewardHistory',
+    args: args as [`0x${string}`, bigint] | undefined,
+    query: {
+      enabled: !!address && !!addresses,
+      refetchInterval: 15000,
+    },
+  })
+
+  const raw = data as Array<{
+    category: RewardCategoryType
+    token: RewardTokenType
+    amount: bigint
+    timestamp: bigint
+  }> | undefined
+
+  const records: RewardRecord[] = raw
+    ? raw.map((item) => ({
+        category: item.category,
+        token: item.token,
+        amount: BigInt(item.amount),
+        timestamp: BigInt(item.timestamp),
+      }))
+    : []
+
+  return {
+    records,
     isLoading,
     error,
     refetch,

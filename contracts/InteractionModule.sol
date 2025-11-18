@@ -3,6 +3,7 @@ pragma solidity ^0.8.30;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./BGPToken.sol";
+import "./RewardHistoryModule.sol";
 
 /**
  * @title InteractionModule
@@ -11,7 +12,7 @@ import "./BGPToken.sol";
  * - 每次交互需支付 0.6U ETH
  * - 每次交互奖励 2000 BGP
  */
-abstract contract InteractionModule is Ownable {
+abstract contract InteractionModule is Ownable, RewardHistoryModule {
     // 需要主合约提供这些函数
     function _getBGPToken() internal view virtual returns (BGPToken);
     function _getTreasury() internal view virtual returns (address payable);
@@ -96,6 +97,8 @@ abstract contract InteractionModule is Ownable {
             "BGP transfer failed"
         );
         totalInteractionBGP[user] += DAILY_BGP_REWARD;
+
+        _recordReward(user, RewardCategory.Interaction, RewardToken.BGP, DAILY_BGP_REWARD);
 
         emit Interacted(
             user,

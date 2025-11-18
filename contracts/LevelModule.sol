@@ -4,6 +4,7 @@ pragma solidity ^0.8.30;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./BGPToken.sol";
+import "./RewardHistoryModule.sol";
 
 /**
  * @title LevelModule
@@ -12,7 +13,7 @@ import "./BGPToken.sol";
  * - 达到等级自动解锁 BGP 和 USDT 奖励
  * - USDT 累计10U才能提现
  */
-abstract contract LevelModule is Ownable {
+abstract contract LevelModule is Ownable, RewardHistoryModule {
     // 需要主合约提供这些函数
     function _getBGPToken() internal view virtual returns (BGPToken);
     function _getTreasury() internal view virtual returns (address payable);
@@ -121,6 +122,9 @@ abstract contract LevelModule is Ownable {
 
         // 累积 USDT（不立即发放）
         pendingUSDT[msg.sender] += levelData.usdtReward;
+
+    _recordReward(msg.sender, RewardCategory.LevelUnlock, RewardToken.BGP, levelData.bgpReward);
+    _recordReward(msg.sender, RewardCategory.LevelUnlock, RewardToken.USDT, levelData.usdtReward);
         
         emit LevelRewardClaimed(
             msg.sender,
@@ -147,6 +151,8 @@ abstract contract LevelModule is Ownable {
         // 转账
         require(usdt.transfer(msg.sender, amount), "USDT transfer failed");
         
+    _recordReward(msg.sender, RewardCategory.LevelUSDTWithdraw, RewardToken.USDT, amount);
+
         emit USDTWithdrawn(msg.sender, amount);
     }
     
@@ -166,6 +172,8 @@ abstract contract LevelModule is Ownable {
             _getBGPToken().transfer(msg.sender, amount),
             "BGP transfer failed"
         );
+
+        _recordReward(msg.sender, RewardCategory.LevelBGPWithdraw, RewardToken.BGP, amount);
     }
 
 

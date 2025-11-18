@@ -49,9 +49,6 @@ export default function RewardsPage() {
     usdt?: number;
     bgp?: number;
   }>({ open: false });
-  const [records, setRecords] = useState<
-    Array<{ type: "USDT" | "BGP"; amount: number; ts: number }>
-  >([]);
   
   // 保存本次领取的奖励信息，用于成功后显示
   const [pendingClaim, setPendingClaim] = useState<{ usdt: number; bgp: number } | null>(null);
@@ -71,21 +68,6 @@ export default function RewardsPage() {
     } catch {}
   };
 
-  useEffect(() => {
-    let tid: number | undefined;
-    try {
-      const items = JSON.parse(localStorage.getItem("claimRecords") || "[]");
-      if (Array.isArray(items)) {
-        tid = window.setTimeout(() => {
-          setRecords(items.slice().reverse());
-        }, 0);
-      }
-    } catch {}
-    return () => {
-      if (tid !== undefined) clearTimeout(tid);
-    };
-  }, [overlay.open]);
-
   // 刷新数据当领取成功时
   useEffect(() => {
     if (isClaimSuccess && pendingClaim) {
@@ -95,19 +77,6 @@ export default function RewardsPage() {
       
       // 显示动画
       setOverlay({ open: true, usdt: pendingClaim.usdt, bgp: pendingClaim.bgp });
-      
-      // 保存到本地记录
-      try {
-        const key = "claimRecords";
-        const existing = JSON.parse(localStorage.getItem(key) || "[]");
-        const nowTs = Date.now();
-        const next = [
-          ...existing,
-          { type: "USDT", amount: pendingClaim.usdt, ts: nowTs },
-          { type: "BGP", amount: pendingClaim.bgp, ts: nowTs },
-        ].slice(-100);
-        localStorage.setItem(key, JSON.stringify(next));
-      } catch {}
       
       // 清除待领取状态
       setPendingClaim(null);
@@ -353,30 +322,6 @@ export default function RewardsPage() {
             </div>
           </div>
 
-          <div className="bg-card/30 backdrop-blur-md rounded-2xl p-4 border border-primary/20">
-            <div className="text-sm font-semibold mb-3">{t("rewards")}</div>
-            {records.length === 0 ? (
-              <div className="text-xs text-muted-foreground">
-                No reward records yet.
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {records.map((r, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center justify-between rounded-xl border border-border p-3 bg-background/50"
-                  >
-                    <div className="text-xs text-muted-foreground">
-                      {new Date(r.ts).toLocaleString()}
-                    </div>
-                    <div className="text-sm font-semibold text-primary">
-                      +{r.amount} {r.type}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
       </div>
     </div>

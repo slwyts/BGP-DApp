@@ -6,15 +6,18 @@ import { Button } from "@/components/ui/button";
 import { Calendar, Crown, TrendingUp, Activity } from "lucide-react";
 import { useLocale } from "@/components/locale-provider";
 import { Particles } from "@/components/ui/particles";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAccount, useDisconnect } from "wagmi";
-import { useUserInfo } from "@/lib/hooks/use-contracts";
+import { useRewardHistory, useUserInfo } from "@/lib/hooks/use-contracts";
+import { RewardCategoryType, RewardTokenType } from "@/lib/contracts/types";
+import { formatUnits } from "viem";
 
 export default function MePage() {
   const { t } = useLocale();
   const { address, chain } = useAccount();
   const { disconnect } = useDisconnect();
   const { userInfo } = useUserInfo();
+  const { records, isLoading: rewardLoading } = useRewardHistory(50);
   const [mounted, setMounted] = useState(false);
   
   // 格式化地址
@@ -26,6 +29,26 @@ export default function MePage() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  const rewardCategoryLabels = useMemo(
+    () => ({
+      [RewardCategoryType.LevelUnlock]: t("level"),
+      [RewardCategoryType.LevelUSDTWithdraw]: "USDT Withdraw",
+      [RewardCategoryType.LevelBGPWithdraw]: "BGP Withdraw",
+      [RewardCategoryType.Interaction]: "Daily Interaction",
+      [RewardCategoryType.Referral]: "Referral",
+      [RewardCategoryType.EarlyBird]: "Early Bird",
+    }),
+    [t]
+  );
+
+  const formatRewardAmount = (token: RewardTokenType, amount: bigint) => {
+    const decimals = token === RewardTokenType.USDT ? 6 : 18;
+    const formatted = Number(formatUnits(amount, decimals));
+    return token === RewardTokenType.USDT
+      ? formatted.toFixed(2)
+      : formatted.toLocaleString();
+  };
 
   // 使用真实合约数据
   const totalInteractions = mounted && userInfo ? Number(userInfo.totalInteractionCount) : 0;
@@ -175,6 +198,48 @@ export default function MePage() {
             </div>
           </motion.div>
           {/* Assets section removed per spec */}
+
+          <div className="bg-card/30 backdrop-blur-md rounded-2xl p-4 border border-primary/20">
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-sm font-semibold">{t("rewards")}</div>
+              <div className="text-xs text-muted-foreground">
+                {records.length} records
+              </div>
+            </div>
+            {rewardLoading ? (
+              <div className="text-xs text-muted-foreground">Loading...</div>
+            ) : records.length === 0 ? (
+              <div className="text-xs text-muted-foreground">No reward records yet.</div>
+            ) : (
+              <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                {records.map((record, idx) => {
+                  const tokenLabel = record.token === RewardTokenType.USDT ? "USDT" : "BGP";
+                  const amountLabel = formatRewardAmount(record.token, record.amount);
+                  const timestamp = Number(record.timestamp) * 1000;
+                  const categoryLabel = rewardCategoryLabels[record.category] || "Reward";
+
+                  return (
+                    <div
+                      key={`${record.timestamp.toString()}-${idx}`}
+                      className="flex items-center justify-between rounded-xl border border-border p-3 bg-background/50"
+                    >
+                      <div>
+                        <div className="text-sm font-semibold text-primary">
+                          +{amountLabel} {tokenLabel}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {categoryLabel}
+                        </div>
+                      </div>
+                      <div className="text-xs text-muted-foreground text-right">
+                        {new Date(timestamp).toLocaleString()}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
           {/* 最近交易板块 - 暂时注释，以后可能还有用 */}
           {/* <div className="mt-6">

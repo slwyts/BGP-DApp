@@ -8,7 +8,7 @@ import "./AntiSybil.sol";
 contract BGPToken is ERC20, ERC20Burnable {
     
     uint256 private constant MAX_SUPPLY = 10_000_000_000 * 10**18;
-    IAntiSybil private immutable antiSybilContract;
+    IAntiSybil public immutable antiSybilContract;
 
     error AddressBlacklisted(address account);
     error ZeroAddress();

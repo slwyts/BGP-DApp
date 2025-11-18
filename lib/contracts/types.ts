@@ -42,3 +42,24 @@ export interface Level {
   usdtReward: bigint;
   bgpReward: bigint;
 }
+
+export enum RewardTokenType {
+  USDT = 0,
+  BGP = 1,
+}
+
+export enum RewardCategoryType {
+  LevelUnlock = 0,
+  LevelUSDTWithdraw = 1,
+  LevelBGPWithdraw = 2,
+  Interaction = 3,
+  Referral = 4,
+  EarlyBird = 5,
+}
+
+export interface RewardRecord {
+  category: RewardCategoryType;
+  token: RewardTokenType;
+  amount: bigint;
+  timestamp: bigint;
+}
