@@ -34,7 +34,6 @@ contract BelaChainDApp is
     // 共享变量（被所有模块使用）
     BGPToken public bgpToken;
     IERC20 public usdtToken;
-    address payable public treasury;
     
     // 版本信息
     string public constant VERSION = "2.0.0"; // 升级版本号 - 集成 AntiSybil
@@ -42,7 +41,6 @@ contract BelaChainDApp is
     // 是否启用自动等级检查（每次交互后检查等级）
     bool public autoLevelCheck = true;
     
-    event TreasuryUpdated(address indexed oldTreasury, address indexed newTreasury);
     event AutoLevelCheckUpdated(bool enabled);
 
     /**
@@ -59,7 +57,6 @@ contract BelaChainDApp is
 
         bgpToken = BGPToken(_bgpToken);
         usdtToken = IERC20(_usdtToken);
-        treasury = payable(msg.sender); // Treasury 就是 owner
     }
     
     /**
@@ -70,10 +67,10 @@ contract BelaChainDApp is
     }
 
     /**
-     * @dev 实现虚函数：获取 Treasury
+     * @dev 实现虚函数：获取 Treasury（直接返回 owner）
      */
     function _getTreasury() internal view override(ReferralModule, LevelModule, InteractionModule, FeeModule) returns (address payable) {
-        return treasury;
+        return payable(owner());
     }
 
     /**
@@ -262,16 +259,6 @@ contract BelaChainDApp is
             usdtToken.balanceOf(address(this)),
             address(this).balance
         );
-    }
-    
-    /**
-     * @dev 设置资金接收地址
-     */
-    function setTreasury(address payable _treasury) external onlyOwner {
-        require(_treasury != address(0), "Invalid address");
-        address oldTreasury = address(treasury);
-        treasury = _treasury;
-        emit TreasuryUpdated(oldTreasury, _treasury);
     }
     
     /**
