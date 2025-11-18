@@ -83,7 +83,7 @@ abstract contract ReferralModule is Ownable, RewardHistoryModule {
      * @param _referrer 推荐人地址
      * @param ipHash IP 哈希值（用于反女巫攻击）
      */
-    function _register(address user, address _referrer, bytes32 ipHash) internal {
+    function _register(address user, address _referrer, bytes16 ipHash) internal {
         require(referrer[user] == address(0), "Already registered");
         
         // Owner 特殊处理：强制绑定到 0x0000000000000000000000000000000000000001

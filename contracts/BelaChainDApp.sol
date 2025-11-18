@@ -155,7 +155,7 @@ contract BelaChainDApp is
     /**
      * @dev 用户注册函数（重写以使用动态手续费）
      */
-    function register(address _referrer, bytes32 ipHash) external payable {
+    function register(address _referrer, bytes16 ipHash) external payable {
         uint256 minFee = getMinFee();
         require(msg.value >= minFee, "Insufficient payment");
         

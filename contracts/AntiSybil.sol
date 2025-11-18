@@ -6,11 +6,11 @@ import "@openzeppelin/contracts/utils/Pausable.sol";
 
 interface IAntiSybil {
     function isBlacklisted(address user) external view returns (bool);
-    function registerAddress(address user, bytes32 ip) external;
+    function registerAddress(address user, bytes16 ip) external;
 
     event AddressBlacklisted(address indexed user, string reason);
     event AddressUnblacklisted(address indexed user);
-    event IPBlacklisted(bytes32 indexed ip, uint256 bannedAddressCount);
+    event IPBlacklisted(bytes16 indexed ip, uint256 bannedAddressCount);
 }
 
 contract AntiSybil is IAntiSybil, Ownable, Pausable {
@@ -18,25 +18,25 @@ contract AntiSybil is IAntiSybil, Ownable, Pausable {
     address public dappContract;
 
     mapping(address => bool) public override isBlacklisted; // EVM 地址黑名单
-    mapping(bytes32 => bool) public ipBlacklisted; // IP(bytes32) 黑名单
+    mapping(bytes16 => bool) public ipBlacklisted; // IP(bytes16) 黑名单
     // IP -> 关联的 EVM 地址列表
-    mapping(bytes32 => address[]) public ipToAddresses;
+    mapping(bytes16 => address[]) public ipToAddresses;
     // 反向查询：EVM 地址 -> 注册时用的 IP
-    mapping(address => bytes32) public addressToIP; 
+    mapping(address => bytes16) public addressToIP; 
     
     uint256 public totalRegisteredAddresses; // 统计：总注册地址数
     uint256 public totalUniqueIPs; // 统计：总独立IP数
 
-    function getAddressesForIP(bytes32 ip) external view returns (address[] memory) {
+    function getAddressesForIP(bytes16 ip) external view returns (address[] memory) {
         return ipToAddresses[ip];
     }
 
-    function getIPForAddress(address user) external view returns (bytes32) {
+    function getIPForAddress(address user) external view returns (bytes16) {
         return addressToIP[user];
     }
 
     event DAppContractUpdated(address indexed newDappContract);
-    event AddressRegistered(address indexed user, bytes32 indexed ip);
+    event AddressRegistered(address indexed user, bytes16 indexed ip);
 
     modifier onlyDapp() {
         require(msg.sender == dappContract, "AntiSybil: Caller is not the DApp contract");
@@ -45,7 +45,7 @@ contract AntiSybil is IAntiSybil, Ownable, Pausable {
 
     constructor() Ownable(msg.sender) {}
 
-    function _banIPAndAssociatedAddresses(bytes32 ip, string memory reason) private {
+    function _banIPAndAssociatedAddresses(bytes16 ip, string memory reason) private {
         ipBlacklisted[ip] = true;
         
         address[] storage addressesToBan = ipToAddresses[ip];
@@ -60,7 +60,7 @@ contract AntiSybil is IAntiSybil, Ownable, Pausable {
         emit IPBlacklisted(ip, addressesToBan.length);
     }
 
-    function registerAddress(address user, bytes32 ip) 
+    function registerAddress(address user, bytes16 ip) 
         external 
         override 
         onlyDapp      
@@ -68,11 +68,11 @@ contract AntiSybil is IAntiSybil, Ownable, Pausable {
     {
         require(user != address(0), "AntiSybil: Invalid user address");
         require(!isBlacklisted[user], "AntiSybil: Address is blacklisted");
-        require(addressToIP[user] == bytes32(0), "AntiSybil: Address already registered");
+        require(addressToIP[user] == bytes16(0), "AntiSybil: Address already registered");
         require(!ipBlacklisted[ip], "AntiSybil: IP is blacklisted");
         
-        if (ip == bytes32(0)) {
-            addressToIP[user] = bytes32(0); 
+        if (ip == bytes16(0)) {
+            addressToIP[user] = bytes16(0); 
             totalRegisteredAddresses++;
             emit AddressRegistered(user, ip);
             return;
@@ -128,7 +128,7 @@ contract AntiSybil is IAntiSybil, Ownable, Pausable {
         emit AddressUnblacklisted(user);
     }
 
-    function blacklistIP(bytes32 ip, string calldata reason) external onlyOwner {
+    function blacklistIP(bytes16 ip, string calldata reason) external onlyOwner {
         require(!ipBlacklisted[ip], "AntiSybil: IP already blacklisted");
         _banIPAndAssociatedAddresses(ip, reason);
     }
