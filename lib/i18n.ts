@@ -161,7 +161,7 @@ export const translations = {
     protocol: "节点",
     dex: "DEX",
     swap: "兑换",
-    lending: "跨链桥",
+    lending: "时空协议",
     more: "更多",
     nextAirdrop: "下次空投",
     canClaim: "可以领取",
