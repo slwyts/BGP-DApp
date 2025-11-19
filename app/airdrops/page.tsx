@@ -227,12 +227,6 @@ export default function HomePage() {
                     </span>
                   </motion.div>
 
-                  <h1 className="text-6xl font-extrabold mb-4 leading-tight">
-                    <span className="bg-linear-to-r from-foreground via-primary to-orange-500 bg-clip-text text-transparent">
-                      {t("belaChainTitle")}
-                    </span>
-                  </h1>
-
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: "60%" }}
