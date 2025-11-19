@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
 import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
@@ -8,30 +8,15 @@ import { useLocale } from "@/components/locale-provider";
 import { DotPattern } from "@/components/ui/dot-pattern";
 import { Crown, TrendingUp, ArrowDownToLine } from "lucide-react";
 import { ClaimAnimationOverlay } from "@/components/claim-animation-overlay";
-import { useUserInfo, useClaimLevelReward, useWithdrawUSDT, useLevelClaimStatus, useWithdrawInteractionBGP } from "@/lib/hooks/use-contracts";
+import { LEVELS, getLevelByContribution, getNextLevelRequirement } from "@/lib/constants/levels";
+import {
+  useUserInfo,
+  useClaimLevelReward,
+  useWithdrawUSDT,
+  useLevelClaimStatus,
+  useWithdrawInteractionBGP,
+} from "@/lib/hooks/use-contracts";
 import { useAccount } from "wagmi";
-
-type Level = {
-  v: number;
-  need: number;
-  usdt: number;
-  bgp: number;
-};
-
-const LEVELS: Level[] = [
-  { v: 1, need: 10, usdt: 0.1, bgp: 200 },
-  { v: 2, need: 50, usdt: 0.5, bgp: 200 },
-  { v: 3, need: 100, usdt: 1, bgp: 200 },
-  { v: 4, need: 500, usdt: 5, bgp: 2000 },
-  { v: 5, need: 3000, usdt: 20, bgp: 8000 },
-  { v: 6, need: 10000, usdt: 100, bgp: 10000 },
-  { v: 7, need: 30000, usdt: 200, bgp: 30000 },
-  { v: 8, need: 50000, usdt: 300, bgp: 50000 },
-  { v: 9, need: 100000, usdt: 500, bgp: 100000 },
-  { v: 10, need: 300000, usdt: 1000, bgp: 300000 },
-  { v: 11, need: 500000, usdt: 2000, bgp: 500000 },
-  { v: 12, need: 1000000, usdt: 10000, bgp: 1000000 },
-];
 
 export default function RewardsPage() {
   const { t } = useLocale();
@@ -56,6 +41,11 @@ export default function RewardsPage() {
   // 从合约数据中提取
   const totalContribution = userInfo ? Number(userInfo.userContribution) : 0;
   const userCurrentLevel = userInfo ? Number(userInfo.currentLevel) : 0;
+  const theoreticalLevel = useMemo(
+    () => getLevelByContribution(totalContribution),
+    [totalContribution]
+  );
+  const displayLevel = Math.max(userCurrentLevel, theoreticalLevel);
   const withdrawableUSDT = userInfo ? Number(userInfo.userPendingUSDT) / 1e6 : 0; // USDT 6位精度
   const totalUSDTWithdrawn = userInfo ? Number(userInfo.userTotalUSDTWithdrawn) / 1e6 : 0;
   const totalLevelBGP = userInfo ? Number(userInfo.userTotalLevelBGP) / 1e18 : 0; // 等级奖励已提现BGP
@@ -89,7 +79,10 @@ export default function RewardsPage() {
     }
   }, [isWithdrawSuccess, isWithdrawBGPSuccess, refetchUserInfo]);
 
-  const nextLevel = LEVELS.find((lv) => lv.need > totalContribution);
+  const nextLevel = useMemo(
+    () => getNextLevelRequirement(totalContribution),
+    [totalContribution]
+  );
 
   const handleClaimLevel = (level: number, usdtReward: number, bgpReward: number) => {
     // 保存待领取的奖励信息
@@ -186,7 +179,7 @@ export default function RewardsPage() {
                     <span>{t("level")}</span>
                   </div>
                   <div className="text-4xl font-bold bg-linear-to-r from-primary via-orange-500 to-orange-600 bg-clip-text text-transparent">
-                    V{userCurrentLevel}
+                    V{displayLevel}
                   </div>
                   {nextLevel && (
                     <div className="text-xs text-muted-foreground mt-1">
@@ -264,7 +257,7 @@ export default function RewardsPage() {
                 const reached = totalContribution >= lv.need;
                 const isClaimed = checkIsClaimed(lv.v);
                 const progress = Math.min(1, totalContribution / lv.need);
-                const isCurrentLevel = lv.v === userCurrentLevel;
+                const isCurrentLevel = lv.v === displayLevel;
 
                 return (
                   <div

@@ -9,6 +9,7 @@ import { Particles } from "@/components/ui/particles";
 import { useEffect, useMemo, useState } from "react";
 import { useAccount, useDisconnect } from "wagmi";
 import { useRewardHistory, useUserInfo } from "@/lib/hooks/use-contracts";
+import { getLevelByContribution } from "@/lib/constants/levels";
 import { RewardCategoryType, RewardTokenType } from "@/lib/contracts/types";
 import { formatUnits } from "viem";
 
@@ -54,6 +55,9 @@ export default function MePage() {
   const totalInteractions = mounted && userInfo ? Number(userInfo.totalInteractionCount) : 0;
   const loginDays = mounted && userInfo ? Math.ceil(totalInteractions / 2) : 0; // 每天最多2次交互,计算活跃天数
   const currentLevel = mounted && userInfo ? Number(userInfo.currentLevel) : 0;
+  const totalContribution = mounted && userInfo ? Number(userInfo.userContribution) : 0;
+  const theoreticalLevel = mounted ? getLevelByContribution(totalContribution) : 0;
+  const displayLevel = Math.max(currentLevel, theoreticalLevel);
   const totalIncome = mounted && userInfo 
     ? (Number(userInfo.userTotalUSDTWithdrawn) + Number(userInfo.userPendingUSDT)) / 1e6 
     : 0;
@@ -152,7 +156,7 @@ export default function MePage() {
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-orange-500">
-                    V{currentLevel}
+                    V{displayLevel}
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {t("currentLevel")}
