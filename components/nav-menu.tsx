@@ -63,7 +63,7 @@ export function NavMenu() {
             <item.icon className="w-7 h-7 text-white" />
           </motion.div>
 
-          <span className="text-sm text-foreground font-semibold relative z-10">
+          <span className="text-sm text-foreground font-semibold relative z-10 whitespace-nowrap">
             {item.label}
           </span>
         </motion.button>
