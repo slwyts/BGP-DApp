@@ -15,6 +15,7 @@
     "node": "hardhat node",
     "deploy:local": "hardhat run scripts/deploy.ts --network localhost",
     "deploy:arb_sep": "hardhat run scripts/deploy.ts --network arbitrumSepolia",
+    "deploy:arb": "hardhat run scripts/deploy.ts --network arbitrumOne",
     "time": "node scripts/time-cli.js"
   },
   "dependencies": {

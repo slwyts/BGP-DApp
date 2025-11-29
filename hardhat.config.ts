@@ -45,6 +45,12 @@ export default defineConfig({
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       gasPrice: 100000000, // 0.1 gwei
     },
+    arbitrumOne: {
+      type: "http" as const,
+      url: process.env.ARBITRUM_RPC || "https://arb1.arbitrum.io/rpc",
+      chainId: 42161,
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+    },
   },
   paths: {
     sources: "./contracts",

@@ -18,8 +18,13 @@ interface EnvConfig {
   shouldMintTestTokens: boolean; // 是否铸造测试币
   shouldDistributeGas: boolean;  // 是否分发 Gas
   shouldDistributeTokens: boolean; // 是否分发测试代币
+  shouldDeployMockUSDT: boolean; // 是否部署 MockUSDT
+  usdtAddress?: string; // 生产环境使用真实 USDT 地址
   envFileName: string;
 }
+
+// Arbitrum 主网 USDT 地址
+const ARBITRUM_USDT_ADDRESS = "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9";
 
 const ENV_CONFIGS: Record<Environment, EnvConfig> = {
   local: {
@@ -29,6 +34,7 @@ const ENV_CONFIGS: Record<Environment, EnvConfig> = {
     shouldMintTestTokens: true,
     shouldDistributeGas: true,
     shouldDistributeTokens: true,
+    shouldDeployMockUSDT: true,
     envFileName: ".env.local",
   },
   development: {
@@ -38,6 +44,7 @@ const ENV_CONFIGS: Record<Environment, EnvConfig> = {
     shouldMintTestTokens: true,  // 铸造测试 USDT
     shouldDistributeGas: false,   // 不分发 Gas（需要自己有测试 ETH）
     shouldDistributeTokens: true, // 分发测试代币
+    shouldDeployMockUSDT: true,
     envFileName: ".env.development",
   },
   production: {
@@ -47,6 +54,8 @@ const ENV_CONFIGS: Record<Environment, EnvConfig> = {
     shouldMintTestTokens: false, // 不铸造测试币
     shouldDistributeGas: false,   // 不分发 Gas
     shouldDistributeTokens: false, // 不分发代币
+    shouldDeployMockUSDT: false, // 不部署 MockUSDT
+    usdtAddress: ARBITRUM_USDT_ADDRESS, // 使用真实 USDT
     envFileName: ".env.production",
   },
 };
@@ -80,7 +89,19 @@ async function main() {
   console.log(`🌐 网络: ${config.network}\n`);
 
   const [deployer] = await ethers.getSigners();
-  const ownerAddress = "0xa4b76d7cae384c9a5fd5f573cef74bfdb980e966"; // 你的地址作为 owner
+  
+  // 根据环境设置 owner 地址
+  let ownerAddress: string;
+  if (env === "production") {
+    // 生产环境使用 PROD_OWNER 环境变量
+    ownerAddress = process.env.PROD_OWNER || "";
+    if (!ownerAddress) {
+      throw new Error("❌ 生产环境部署必须设置 PROD_OWNER 环境变量！");
+    }
+  } else {
+    // 测试环境使用固定的测试地址
+    ownerAddress = "0xa4b76d7cae384c9a5fd5f573cef74bfdb980e966";
+  }
   
   console.log("📝 部署账户:", deployer.address);
   console.log("👑 Owner 地址:", ownerAddress);
@@ -102,21 +123,33 @@ async function main() {
   const bgpTokenAddress = await bgpToken.getAddress();
   console.log("✅ BGPToken 部署成功:", bgpTokenAddress, "\n");
 
-  // 3. 部署 MockUSDT (测试用)
-  console.log("📦 部署 MockUSDT...");
-  const MockUSDT = await ethers.getContractFactory("MockUSDT");
-  const usdt = await MockUSDT.deploy();
-  await usdt.waitForDeployment();
-  const usdtAddress = await usdt.getAddress();
-  console.log("✅ MockUSDT 部署成功:", usdtAddress, "\n");
+  // 3. 获取或部署 USDT
+  let usdtAddress: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let usdtContract: any = null;
+  
+  if (config.shouldDeployMockUSDT) {
+    // 测试环境：部署 MockUSDT
+    console.log("📦 部署 MockUSDT...");
+    const MockUSDT = await ethers.getContractFactory("MockUSDT");
+    const usdt = await MockUSDT.deploy();
+    await usdt.waitForDeployment();
+    usdtAddress = await usdt.getAddress();
+    usdtContract = usdt;
+    console.log("✅ MockUSDT 部署成功:", usdtAddress, "\n");
 
-  // 3.5 给部署者铸造 USDT（仅测试环境）
-  if (config.shouldMintTestTokens) {
-    console.log("💰 铸造 USDT 到部署者...");
-    const usdtMintAmount = ethers.parseUnits("10000000", 6); // 1000万 USDT
-    const tx0 = await usdt.mint(deployer.address, usdtMintAmount);
-    await tx0.wait();
-    console.log("✅ 已铸造", ethers.formatUnits(usdtMintAmount, 6), "USDT\n");
+    // 给部署者铸造 USDT（仅测试环境）
+    if (config.shouldMintTestTokens) {
+      console.log("💰 铸造 USDT 到部署者...");
+      const usdtMintAmount = ethers.parseUnits("10000000", 6); // 1000万 USDT
+      const tx0 = await usdt.mint(deployer.address, usdtMintAmount);
+      await tx0.wait();
+      console.log("✅ 已铸造", ethers.formatUnits(usdtMintAmount, 6), "USDT\n");
+    }
+  } else {
+    // 生产环境：使用真实 USDT 地址
+    usdtAddress = config.usdtAddress!;
+    console.log("📍 使用真实 USDT 地址:", usdtAddress, "\n");
   }
 
   // 4. 部署 BelaChainDApp
@@ -136,19 +169,36 @@ async function main() {
   await tx1.wait();
   console.log("✅ AntiSybil DApp 地址设置完成\n");
 
-  // 6. 转移 50% BGP 到 DApp 合约
-  console.log("💸 转移 50% BGP 到 DApp 合约...");
+  // 6. 转移 BGP 代币
   const totalSupply = await bgpToken.totalSupply();
-  const halfSupply = totalSupply / BigInt(2);
-  const tx2 = await bgpToken.transfer(dappAddress, halfSupply);
-  await tx2.wait();
-  console.log("✅ 已转移", ethers.formatEther(halfSupply), "BGP 到 DApp\n");
+  
+  if (env === "production") {
+    // 生产环境：50% 给 DApp 合约，50% 给 owner
+    const halfSupply = totalSupply / BigInt(2);
+    
+    console.log("💸 转移 50% BGP 到 DApp 合约...");
+    const tx2a = await bgpToken.transfer(dappAddress, halfSupply);
+    await tx2a.wait();
+    console.log("✅ 已转移", ethers.formatEther(halfSupply), "BGP 到 DApp\n");
+    
+    console.log("💸 转移 50% BGP 到 Owner...");
+    const tx2b = await bgpToken.transfer(ownerAddress, halfSupply);
+    await tx2b.wait();
+    console.log("✅ 已转移", ethers.formatEther(halfSupply), "BGP 到 Owner\n");
+  } else {
+    // 测试环境：50% 给 DApp 合约，其余留给 deployer 用于测试
+    console.log("💸 转移 50% BGP 到 DApp 合约...");
+    const halfSupply = totalSupply / BigInt(2);
+    const tx2 = await bgpToken.transfer(dappAddress, halfSupply);
+    await tx2.wait();
+    console.log("✅ 已转移", ethers.formatEther(halfSupply), "BGP 到 DApp\n");
+  }
 
   // 7. 转移 USDT 到 DApp 合约（用于等级奖励）
-  if (config.shouldMintTestTokens) {
+  if (config.shouldMintTestTokens && usdtContract) {
     console.log("💸 转移 USDT 到 DApp 合约...");
     const usdtAmount = ethers.parseUnits("3000000", 6); // 300万 USDT
-    const tx3 = await usdt.transfer(dappAddress, usdtAmount);
+    const tx3 = await usdtContract.transfer(dappAddress, usdtAmount);
     await tx3.wait();
     console.log("✅ 已转移", ethers.formatUnits(usdtAmount, 6), "USDT 到 DApp\n");
   }
@@ -175,7 +225,7 @@ async function main() {
       }
       
       // 转测试代币 - local 和 development 环境
-      if (config.shouldDistributeTokens) {
+      if (config.shouldDistributeTokens && usdtContract) {
         // 转 BGP
         const bgpAmount = ethers.parseEther("100000"); // 10万 BGP
         const tx5 = await bgpToken.transfer(testAddr, bgpAmount);
@@ -183,7 +233,7 @@ async function main() {
         
         // 转 USDT
         const testUsdtAmount = ethers.parseUnits("10000", 6); // 1万 USDT
-        const tx6 = await usdt.transfer(testAddr, testUsdtAmount);
+        const tx6 = await usdtContract.transfer(testAddr, testUsdtAmount);
         await tx6.wait();
         
         console.log(`  ✅ ${testAddr}: 10万 BGP + 1万 USDT`);
@@ -243,7 +293,7 @@ NEXT_PUBLIC_RPC_URL=${config.rpcUrl}
   console.log("Chain ID:      ", chainIdNum, "(实际连接)");
   console.log("AntiSybil:     ", antiSybilAddress);
   console.log("BGPToken:      ", bgpTokenAddress);
-  console.log("MockUSDT:      ", usdtAddress);
+  console.log("USDT:          ", usdtAddress, env === "production" ? "(Arbitrum官方)" : "(MockUSDT)");
   console.log("BelaChainDApp: ", dappAddress);
   console.log("Owner/Treasury:", ownerAddress);
   console.log("=" .repeat(60));
