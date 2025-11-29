@@ -47,7 +47,7 @@ export default defineConfig({
     },
     arbitrumOne: {
       type: "http" as const,
-      url: process.env.ARBITRUM_RPC || "https://arb1.arbitrum.io/rpc",
+      url: process.env.ARBITRUM_RPC || "https://arbitrum-one-rpc.publicnode.com",
       chainId: 42161,
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
     },

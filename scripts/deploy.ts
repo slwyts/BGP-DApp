@@ -50,7 +50,7 @@ const ENV_CONFIGS: Record<Environment, EnvConfig> = {
   production: {
     network: "arbitrum",
     chainId: 42161,
-    rpcUrl: "https://arb1.arbitrum.io/rpc",
+    rpcUrl: "https://arbitrum-one-rpc.publicnode.com",
     shouldMintTestTokens: false, // 不铸造测试币
     shouldDistributeGas: false,   // 不分发 Gas
     shouldDistributeTokens: false, // 不分发代币
