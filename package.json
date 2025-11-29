@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "dotenv -e .env.local -- next dev",
     "dev:testnet": "dotenv -e .env.development -- next dev",
-    "build": "npm run compile && dotenv -e .env.development -- next build",
-    "build:prod": "npm run compile && dotenv -e .env.production -- next build",
+    "build:dev": "npm run compile && dotenv -e .env.development -- next build",
+    "build": "npm run compile && dotenv -e .env.production -- next build",
     "start": "npx serve@latest out",
     "lint": "eslint .",
     "compile": "hardhat compile",
