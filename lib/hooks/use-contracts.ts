@@ -5,10 +5,12 @@ import { parseEther, formatEther, type Abi } from 'viem'
 import { getContractAddresses } from '../contracts/addresses'
 import BelaChainDAppArtifact from '../../artifacts/contracts/BelaChainDApp.sol/BelaChainDApp.json'
 import BGPTokenArtifact from '../../artifacts/contracts/BGPToken.sol/BGPToken.json'
+import AntiSybilArtifact from '../../artifacts/contracts/AntiSybil.sol/AntiSybil.json'
 import type { UserInfo, RewardRecord, RewardCategoryType, RewardTokenType } from '../contracts/types'
 
 const DAppABI = BelaChainDAppArtifact.abi as Abi
 const BGPTokenABI = BGPTokenArtifact.abi as Abi
+const AntiSybilABI = AntiSybilArtifact.abi as Abi
 
 /**
  * 获取区块链当前时间戳
@@ -543,6 +545,443 @@ export function useDirectReferralsWithTime() {
     timestamps: result?.[1] || [],
     isLoading,
     error,
+    refetch,
+  }
+}
+
+/**
+ * 检查当前钱包是否是合约 Owner
+ */
+export function useIsOwner() {
+  const { address, chainId } = useAccount()
+  const addresses = chainId ? getContractAddresses() : null
+
+  const { data: dappOwner, isLoading: isDappOwnerLoading } = useReadContract({
+    address: addresses?.dapp as `0x${string}`,
+    abi: DAppABI,
+    functionName: 'owner',
+    query: {
+      enabled: !!addresses,
+    },
+  })
+
+  const isOwner = address && dappOwner
+    ? address.toLowerCase() === (dappOwner as string).toLowerCase()
+    : false
+
+  return {
+    isOwner,
+    ownerAddress: dappOwner as string | undefined,
+    isLoading: isDappOwnerLoading,
+  }
+}
+
+/**
+ * 获取合约暂停状态
+ */
+export function useContractPaused() {
+  const { chainId } = useAccount()
+  const addresses = chainId ? getContractAddresses() : null
+
+  const { data, isLoading, refetch } = useReadContract({
+    address: addresses?.dapp as `0x${string}`,
+    abi: DAppABI,
+    functionName: 'paused',
+    query: {
+      enabled: !!addresses,
+    },
+  })
+
+  return {
+    isPaused: data as boolean | undefined,
+    isLoading,
+    refetch,
+  }
+}
+
+/**
+ * 暂停/恢复合约 (仅Owner)
+ */
+export function usePauseContract() {
+  const { chainId } = useAccount()
+  const addresses = chainId ? getContractAddresses() : null
+  const { writeContract, data: hash, isPending, error } = useWriteContract()
+
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+    hash,
+  })
+
+  const pause = () => {
+    if (!addresses) return
+    writeContract({
+      address: addresses.dapp as `0x${string}`,
+      abi: DAppABI,
+      functionName: 'pause',
+    })
+  }
+
+  const unpause = () => {
+    if (!addresses) return
+    writeContract({
+      address: addresses.dapp as `0x${string}`,
+      abi: DAppABI,
+      functionName: 'unpause',
+    })
+  }
+
+  return {
+    pause,
+    unpause,
+    hash,
+    isPending,
+    isConfirming,
+    isSuccess,
+    error,
+  }
+}
+
+/**
+ * 设置自动等级检查 (仅Owner)
+ */
+export function useSetAutoLevelCheck() {
+  const { chainId } = useAccount()
+  const addresses = chainId ? getContractAddresses() : null
+  const { writeContract, data: hash, isPending, error } = useWriteContract()
+
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+    hash,
+  })
+
+  const { data: autoLevelCheck, refetch } = useReadContract({
+    address: addresses?.dapp as `0x${string}`,
+    abi: DAppABI,
+    functionName: 'autoLevelCheck',
+    query: {
+      enabled: !!addresses,
+    },
+  })
+
+  const setAutoLevelCheck = (enabled: boolean) => {
+    if (!addresses) return
+    writeContract({
+      address: addresses.dapp as `0x${string}`,
+      abi: DAppABI,
+      functionName: 'setAutoLevelCheck',
+      args: [enabled],
+    })
+  }
+
+  return {
+    autoLevelCheck: autoLevelCheck as boolean | undefined,
+    setAutoLevelCheck,
+    hash,
+    isPending,
+    isConfirming,
+    isSuccess,
+    error,
+    refetch,
+  }
+}
+
+/**
+ * 紧急提取 (仅Owner)
+ */
+export function useEmergencyWithdraw() {
+  const { chainId } = useAccount()
+  const addresses = chainId ? getContractAddresses() : null
+  const { writeContract, data: hash, isPending, error } = useWriteContract()
+
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+    hash,
+  })
+
+  const emergencyWithdrawETH = () => {
+    if (!addresses) return
+    writeContract({
+      address: addresses.dapp as `0x${string}`,
+      abi: DAppABI,
+      functionName: 'emergencyWithdraw',
+    })
+  }
+
+  const emergencyWithdrawToken = (tokenAddress: string) => {
+    if (!addresses) return
+    writeContract({
+      address: addresses.dapp as `0x${string}`,
+      abi: DAppABI,
+      functionName: 'emergencyWithdrawToken',
+      args: [tokenAddress],
+    })
+  }
+
+  return {
+    emergencyWithdrawETH,
+    emergencyWithdrawToken,
+    hash,
+    isPending,
+    isConfirming,
+    isSuccess,
+    error,
+  }
+}
+
+/**
+ * 获取 AntiSybil 合约地址
+ */
+export function useAntiSybilAddress() {
+  const { chainId } = useAccount()
+  const addresses = chainId ? getContractAddresses() : null
+
+  const { data: bgpTokenAntiSybil } = useReadContract({
+    address: addresses?.bgpToken as `0x${string}`,
+    abi: BGPTokenABI,
+    functionName: 'antiSybilContract',
+    query: {
+      enabled: !!addresses,
+    },
+  })
+
+  return {
+    antiSybilAddress: bgpTokenAntiSybil as string | undefined,
+  }
+}
+
+/**
+ * AntiSybil 统计数据
+ */
+export function useAntiSybilStats() {
+  const { antiSybilAddress } = useAntiSybilAddress()
+
+  const { data: totalRegistered, refetch: refetchTotal } = useReadContract({
+    address: antiSybilAddress as `0x${string}`,
+    abi: AntiSybilABI,
+    functionName: 'totalRegisteredAddresses',
+    query: {
+      enabled: !!antiSybilAddress,
+    },
+  })
+
+  const { data: totalUniqueIPs, refetch: refetchIPs } = useReadContract({
+    address: antiSybilAddress as `0x${string}`,
+    abi: AntiSybilABI,
+    functionName: 'totalUniqueIPs',
+    query: {
+      enabled: !!antiSybilAddress,
+    },
+  })
+
+  const { data: maxPerIP } = useReadContract({
+    address: antiSybilAddress as `0x${string}`,
+    abi: AntiSybilABI,
+    functionName: 'MAX_ADDRESSES_PER_IP',
+    query: {
+      enabled: !!antiSybilAddress,
+    },
+  })
+
+  const { data: isPaused, refetch: refetchPaused } = useReadContract({
+    address: antiSybilAddress as `0x${string}`,
+    abi: AntiSybilABI,
+    functionName: 'paused',
+    query: {
+      enabled: !!antiSybilAddress,
+    },
+  })
+
+  const refetch = () => {
+    refetchTotal()
+    refetchIPs()
+    refetchPaused()
+  }
+
+  return {
+    totalRegistered: totalRegistered ? Number(totalRegistered) : 0,
+    totalUniqueIPs: totalUniqueIPs ? Number(totalUniqueIPs) : 0,
+    maxPerIP: maxPerIP ? Number(maxPerIP) : 15,
+    isPaused: isPaused as boolean | undefined,
+    antiSybilAddress,
+    refetch,
+  }
+}
+
+/**
+ * AntiSybil 暂停/恢复 (仅Owner)
+ */
+export function useAntiSybilPause() {
+  const { antiSybilAddress } = useAntiSybilAddress()
+  const { writeContract, data: hash, isPending, error } = useWriteContract()
+
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+    hash,
+  })
+
+  const pause = () => {
+    if (!antiSybilAddress) return
+    writeContract({
+      address: antiSybilAddress as `0x${string}`,
+      abi: AntiSybilABI,
+      functionName: 'pause',
+    })
+  }
+
+  const unpause = () => {
+    if (!antiSybilAddress) return
+    writeContract({
+      address: antiSybilAddress as `0x${string}`,
+      abi: AntiSybilABI,
+      functionName: 'unpause',
+    })
+  }
+
+  return {
+    pause,
+    unpause,
+    hash,
+    isPending,
+    isConfirming,
+    isSuccess,
+    error,
+  }
+}
+
+/**
+ * 地址黑名单管理 (仅Owner)
+ */
+export function useAddressBlacklist() {
+  const { antiSybilAddress } = useAntiSybilAddress()
+  const { writeContract, data: hash, isPending, error } = useWriteContract()
+
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+    hash,
+  })
+
+  const blacklistAddress = (address: string, reason: string) => {
+    if (!antiSybilAddress) return
+    writeContract({
+      address: antiSybilAddress as `0x${string}`,
+      abi: AntiSybilABI,
+      functionName: 'blacklistAddress',
+      args: [address, reason],
+    })
+  }
+
+  const removeFromBlacklist = (address: string) => {
+    if (!antiSybilAddress) return
+    writeContract({
+      address: antiSybilAddress as `0x${string}`,
+      abi: AntiSybilABI,
+      functionName: 'removeFromBlacklist',
+      args: [address],
+    })
+  }
+
+  return {
+    blacklistAddress,
+    removeFromBlacklist,
+    hash,
+    isPending,
+    isConfirming,
+    isSuccess,
+    error,
+  }
+}
+
+/**
+ * IP黑名单管理 (仅Owner)
+ */
+export function useIPBlacklist() {
+  const { antiSybilAddress } = useAntiSybilAddress()
+  const { writeContract, data: hash, isPending, error } = useWriteContract()
+
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+    hash,
+  })
+
+  const blacklistIP = (ipHash: string, reason: string) => {
+    if (!antiSybilAddress) return
+    writeContract({
+      address: antiSybilAddress as `0x${string}`,
+      abi: AntiSybilABI,
+      functionName: 'blacklistIP',
+      args: [ipHash, reason],
+    })
+  }
+
+  return {
+    blacklistIP,
+    hash,
+    isPending,
+    isConfirming,
+    isSuccess,
+    error,
+  }
+}
+
+/**
+ * 查询地址是否被黑名单
+ */
+export function useCheckBlacklisted(addressToCheck?: string) {
+  const { antiSybilAddress } = useAntiSybilAddress()
+
+  const { data, isLoading, refetch } = useReadContract({
+    address: antiSybilAddress as `0x${string}`,
+    abi: AntiSybilABI,
+    functionName: 'isBlacklisted',
+    args: [addressToCheck],
+    query: {
+      enabled: !!antiSybilAddress && !!addressToCheck,
+    },
+  })
+
+  return {
+    isBlacklisted: data as boolean | undefined,
+    isLoading,
+    refetch,
+  }
+}
+
+/**
+ * 查询地址关联的IP
+ */
+export function useAddressToIP(addressToCheck?: string) {
+  const { antiSybilAddress } = useAntiSybilAddress()
+
+  const { data, isLoading, refetch } = useReadContract({
+    address: antiSybilAddress as `0x${string}`,
+    abi: AntiSybilABI,
+    functionName: 'addressToIP',
+    args: [addressToCheck],
+    query: {
+      enabled: !!antiSybilAddress && !!addressToCheck,
+    },
+  })
+
+  return {
+    ipHash: data as string | undefined,
+    isLoading,
+    refetch,
+  }
+}
+
+/**
+ * 查询IP关联的地址列表
+ */
+export function useIPToAddresses(ipHash?: string) {
+  const { antiSybilAddress } = useAntiSybilAddress()
+
+  const { data, isLoading, refetch } = useReadContract({
+    address: antiSybilAddress as `0x${string}`,
+    abi: AntiSybilABI,
+    functionName: 'getAddressesForIP',
+    args: [ipHash],
+    query: {
+      enabled: !!antiSybilAddress && !!ipHash,
+    },
+  })
+
+  return {
+    addresses: data as string[] | undefined,
+    isLoading,
     refetch,
   }
 }

@@ -15,6 +15,7 @@ import {
   Globe,
   Search,
   LogOut,
+  Shield,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLocale } from "@/components/locale-provider";
@@ -22,7 +23,7 @@ import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useAccount, useDisconnect, useConnect } from "wagmi";
-import { useBGPBalance } from "@/lib/hooks/use-contracts";
+import { useBGPBalance, useIsOwner } from "@/lib/hooks/use-contracts";
 
 type SidebarProps = {
   open: boolean;
@@ -35,6 +36,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
   const { balance } = useBGPBalance();
+  const { isOwner } = useIsOwner();
   const [mounted, setMounted] = useState(false);
   const { connect, connectors } = useConnect();
 
@@ -49,6 +51,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     { href: "/rewards", label: t("rewards"), icon: Gift },
     { href: "/me", label: t("profile"), icon: User },
     { href: "/announcements", label: t("announcements"), icon: Megaphone },
+    ...(isOwner ? [{ href: "/admin", label: t("adminPanel"), icon: Shield }] : []),
     { href: "https://www.belachain.com", label: t("officialSite"), icon: Globe, external: true },
     { href: "https://hash.belachain.com", label: t("blockExplorer"), icon: Search, external: true },
   ];
