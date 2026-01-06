@@ -157,7 +157,7 @@ export function useRegister() {
     hash,
   })
 
-  const register = (referrer: string, ipHash: string) => {
+  const register = (referrer: string, ipAddr: string) => {
     if (!addresses || !minFee) return
 
     // 生成随机费用：0.6-0.8 USD (minFee * 1 到 minFee * 1.333)
@@ -169,7 +169,7 @@ export function useRegister() {
       address: addresses.dapp as `0x${string}`,
       abi: DAppABI,
       functionName: 'register',
-      args: [referrer, ipHash],
+      args: [referrer, ipAddr],
       value: randomFee, // 随机费用 0.6-0.8 USD
     })
   }
@@ -897,13 +897,13 @@ export function useIPBlacklist() {
     hash,
   })
 
-  const blacklistIP = (ipHash: string, reason: string) => {
+  const blacklistIP = (ipAddr: string, reason: string) => {
     if (!antiSybilAddress) return
     writeContract({
       address: antiSybilAddress as `0x${string}`,
       abi: AntiSybilABI,
       functionName: 'blacklistIP',
-      args: [ipHash, reason],
+      args: [ipAddr, reason],
     })
   }
 
@@ -957,7 +957,7 @@ export function useAddressToIP(addressToCheck?: string) {
   })
 
   return {
-    ipHash: data as string | undefined,
+    ipAddr: data as string | undefined,
     isLoading,
     refetch,
   }
@@ -966,16 +966,16 @@ export function useAddressToIP(addressToCheck?: string) {
 /**
  * 查询IP关联的地址列表
  */
-export function useIPToAddresses(ipHash?: string) {
+export function useIPToAddresses(ipAddr?: string) {
   const { antiSybilAddress } = useAntiSybilAddress()
 
   const { data, isLoading, refetch } = useReadContract({
     address: antiSybilAddress as `0x${string}`,
     abi: AntiSybilABI,
     functionName: 'getAddressesForIP',
-    args: [ipHash],
+    args: [ipAddr],
     query: {
-      enabled: !!antiSybilAddress && !!ipHash,
+      enabled: !!antiSybilAddress && !!ipAddr,
     },
   })
 

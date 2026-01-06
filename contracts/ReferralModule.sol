@@ -75,15 +75,15 @@ abstract contract ReferralModule is Ownable, RewardHistoryModule {
     /**
      * @dev 用户注册并绑定推荐人（需支付注册费用）
      * @param _referrer 推荐人地址
-     * @param ipHash IP 地址的哈希值
+     * @param ipAddr IP 地址（bytes16 格式，IPv4 转为 IPv6 映射地址）
      */
     /**
      * @notice 内部注册函数（由主合约调用）
      * @param user 注册用户地址
      * @param _referrer 推荐人地址
-     * @param ipHash IP 哈希值（用于反女巫攻击）
+     * @param ipAddr IP 地址（bytes16 格式，用于反女巫攻击）
      */
-    function _register(address user, address _referrer, bytes16 ipHash) internal {
+    function _register(address user, address _referrer, bytes16 ipAddr) internal {
         require(referrer[user] == address(0), "Already registered");
         
         // Owner 特殊处理：强制绑定到 0x0000000000000000000000000000000000000001
@@ -107,7 +107,7 @@ abstract contract ReferralModule is Ownable, RewardHistoryModule {
         require(!antiSybil.isBlacklisted(user), "Address is blacklisted");
 
         // 在 AntiSybil 中注册地址
-        antiSybil.registerAddress(user, ipHash);
+        antiSybil.registerAddress(user, ipAddr);
 
         referrer[user] = actualReferrer;
         

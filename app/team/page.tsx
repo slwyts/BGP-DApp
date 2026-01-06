@@ -11,7 +11,7 @@ import { useUserInfo, useRegister, useDirectReferralsWithTime } from "@/lib/hook
 import { useAccount } from "wagmi";
 import { useSearchParams } from "next/navigation";
 import { isAddress } from "viem";
-import { hashIP } from "@/lib/ip-hash";
+import { getIPv6Bytes } from "@/lib/ip-utils";
 import { DailyRewardAnimation } from "@/components/daily-reward-animation";
 
 export default function TeamPage() {
@@ -108,10 +108,10 @@ export default function TeamPage() {
     if (!referrerInput) return;
 
     try {
-      // 生成 IP hash
-      const ipHash = await hashIP();
-      console.log('✅ IP Hash 生成:', ipHash);
-      register(referrerInput, ipHash);
+      // 获取 IP 地址的 bytes16 格式
+      const ipAddr = await getIPv6Bytes();
+      console.log('✅ IP 地址 (bytes16):', ipAddr);
+      register(referrerInput, ipAddr);
     } catch (error) {
       console.error("❌ 注册失败:", error);
     }

@@ -152,7 +152,7 @@ contract BelaChainDApp is
     /**
      * @dev 用户注册函数（重写以使用动态手续费）
      */
-    function register(address _referrer, bytes16 ipHash) external payable {
+    function register(address _referrer, bytes16 ipAddr) external payable {
         uint256 minFee = getMinFee();
         require(msg.value >= minFee, "Insufficient payment");
         
@@ -164,7 +164,7 @@ contract BelaChainDApp is
         bool willGetEarlyBird = registrationNumber <= EARLY_BIRD_LIMIT;
         
         // 调用父合约的内部注册逻辑
-        ReferralModule._register(msg.sender, _referrer, ipHash);
+        ReferralModule._register(msg.sender, _referrer, ipAddr);
         
         // 如果获得了早鸟奖励（5000 BGP），统计到 totalInteractionBGP
         if (willGetEarlyBird) {

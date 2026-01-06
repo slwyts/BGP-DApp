@@ -96,7 +96,7 @@ export default function AdminPage() {
   const [activeQueryAddress, setActiveQueryAddress] = useState("");
   const { isBlacklisted: queriedBlacklisted, refetch: refetchBlacklisted } =
     useCheckBlacklisted(activeQueryAddress || undefined);
-  const { ipHash: queriedIP } = useAddressToIP(activeQueryAddress || undefined);
+  const { ipAddr: queriedIP } = useAddressToIP(activeQueryAddress || undefined);
 
   // 黑名单操作
   const [blacklistInput, setBlacklistInput] = useState("");
