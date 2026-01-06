@@ -110,7 +110,10 @@ async function main() {
   // 1. 部署 AntiSybil
   console.log("📦 部署 AntiSybil...");
   const AntiSybil = await ethers.getContractFactory("AntiSybil");
-  const antiSybil = await AntiSybil.deploy();
+  // IP 签名者地址：从环境变量读取，默认为 0x0 (禁用签名验证)
+  const ipSignerAddress = process.env.IP_SIGNER_ADDRESS || "0x0000000000000000000000000000000000000000";
+  console.log("   IP 签名者地址:", ipSignerAddress);
+  const antiSybil = await AntiSybil.deploy(ipSignerAddress);
   await antiSybil.waitForDeployment();
   const antiSybilAddress = await antiSybil.getAddress();
   console.log("✅ AntiSybil 部署成功:", antiSybilAddress, "\n");

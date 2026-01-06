@@ -36,6 +36,8 @@ import {
   useAddressBlacklist,
   useCheckBlacklisted,
   useAddressToIP,
+  useIPSigner,
+  useSetIPSigner,
 } from "@/lib/hooks/use-contracts";
 import { useAccount } from "wagmi";
 import { getContractAddresses } from "@/lib/contracts/addresses";
@@ -91,6 +93,15 @@ export default function AdminPage() {
     isSuccess: isBlacklistSuccess,
   } = useAddressBlacklist();
 
+  // IP 签名者管理
+  const { ipSigner, refetch: refetchIPSigner } = useIPSigner();
+  const {
+    setIPSigner,
+    isPending: isSetSignerPending,
+    isSuccess: isSetSignerSuccess,
+  } = useSetIPSigner();
+  const [newSignerAddress, setNewSignerAddress] = useState("");
+
   // 查询地址状态
   const [queryAddress, setQueryAddress] = useState("");
   const [activeQueryAddress, setActiveQueryAddress] = useState("");
@@ -131,6 +142,13 @@ export default function AdminPage() {
       setBlacklistReason("");
     }
   }, [isBlacklistSuccess, refetchBlacklisted]);
+
+  useEffect(() => {
+    if (isSetSignerSuccess) {
+      refetchIPSigner();
+      setNewSignerAddress("");
+    }
+  }, [isSetSignerSuccess, refetchIPSigner]);
 
   const handleQueryAddress = () => {
     if (queryAddress && queryAddress.startsWith("0x")) {
@@ -418,6 +436,43 @@ export default function AdminPage() {
                 )}
                 {isAntiSybilPaused ? t("resumeContract") : t("pauseContract")}
               </Button>
+            </div>
+
+            {/* IP Signer Management */}
+            <div className="bg-background/50 rounded-xl p-4 mb-4">
+              <p className="font-medium mb-3">{t("ipSignerManagement")}</p>
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-sm text-muted-foreground">{t("currentSigner")}:</span>
+                <span className="font-mono text-sm">
+                  {ipSigner === "0x0000000000000000000000000000000000000000"
+                    ? t("notSet")
+                    : ipSigner?.slice(0, 10) + "..." + ipSigner?.slice(-8)}
+                </span>
+                {ipSigner === "0x0000000000000000000000000000000000000000" && (
+                  <span className="text-yellow-500 text-xs">({t("signatureDisabled")})</span>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newSignerAddress}
+                  onChange={(e) => setNewSignerAddress(e.target.value)}
+                  placeholder={t("newSignerAddress")}
+                  className="flex-1 px-3 py-2 rounded-lg bg-background border border-border text-sm font-mono"
+                />
+                <Button
+                  onClick={() => setIPSigner(newSignerAddress)}
+                  disabled={isSetSignerPending || !newSignerAddress}
+                  variant="outline"
+                >
+                  {isSetSignerPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  ) : (
+                    <Settings className="w-4 h-4 mr-2" />
+                  )}
+                  {t("setSigner")}
+                </Button>
+              </div>
             </div>
 
             {/* Query Address */}

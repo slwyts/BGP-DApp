@@ -1,15 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.30;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/utils/Pausable.sol";
-import "./BGPToken.sol";
-import "./AntiSybil.sol";
-import "./ReferralModule.sol";
-import "./LevelModule.sol";
-import "./InteractionModule.sol";
-import "./FeeModule.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {BGPToken} from "./BGPToken.sol";
+import {IAntiSybil} from "./AntiSybil.sol";
+import {ReferralModule} from "./ReferralModule.sol";
+import {LevelModule} from "./LevelModule.sol";
+import {InteractionModule} from "./InteractionModule.sol";
+import {FeeModule} from "./FeeModule.sol";
 
 /**
  * @title BelaChainDApp
@@ -36,7 +37,7 @@ contract BelaChainDApp is
     IERC20 public usdtToken;
     
     // 版本信息
-    string public constant VERSION = "2.0.0"; // 升级版本号 - 集成 AntiSybil
+    string public constant VERSION = "2.0.0";
     
     // 是否启用自动等级检查（每次交互后检查等级）
     bool public autoLevelCheck = true;
@@ -151,26 +152,35 @@ contract BelaChainDApp is
     
     /**
      * @dev 用户注册函数（重写以使用动态手续费）
+     * @param _referrer 推荐人地址
+     * @param ipAddr IP 地址 (bytes16 格式)
+     * @param timestamp 签名时间戳
+     * @param signature 服务器签名
      */
-    function register(address _referrer, bytes16 ipAddr) external payable {
+    function register(
+        address _referrer,
+        bytes16 ipAddr,
+        uint256 timestamp,
+        bytes calldata signature
+    ) external payable {
         uint256 minFee = getMinFee();
         require(msg.value >= minFee, "Insufficient payment");
-        
+
         // 收取手续费
         _collectFee(minFee);
-        
+
         // 记录注册前的状态，用于判断是否获得早鸟奖励
         uint256 registrationNumber = totalRegistered + 1;
         bool willGetEarlyBird = registrationNumber <= EARLY_BIRD_LIMIT;
-        
+
         // 调用父合约的内部注册逻辑
-        ReferralModule._register(msg.sender, _referrer, ipAddr);
-        
+        ReferralModule._register(msg.sender, _referrer, ipAddr, timestamp, signature);
+
         // 如果获得了早鸟奖励（5000 BGP），统计到 totalInteractionBGP
         if (willGetEarlyBird) {
             totalInteractionBGP[msg.sender] += EARLY_BIRD_REWARD;
         }
-        
+
         // 注册后给上级分发推荐奖励（与空投一次相同的奖励）
         if (referrer[msg.sender] != address(0) && referrer[msg.sender] != address(1)) {
             ReferralModule._distributeReferralRewards(msg.sender);

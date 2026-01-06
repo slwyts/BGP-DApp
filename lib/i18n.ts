@@ -185,6 +185,13 @@ export const translations = {
     blacklistReason: "Reason for blacklisting",
     addToBlacklist: "Add to Blacklist",
     removeFromBlacklist: "Remove from Blacklist",
+    // IP Signer
+    ipSignerManagement: "IP Signer Management",
+    currentSigner: "Current Signer",
+    notSet: "Not Set",
+    signatureDisabled: "Signature verification disabled",
+    newSignerAddress: "New signer address (0x...)",
+    setSigner: "Set Signer",
   },
   zh: {
     appName: "Belachain",
@@ -368,6 +375,13 @@ export const translations = {
     blacklistReason: "封禁原因（将记录在链上）",
     addToBlacklist: "加入黑名单",
     removeFromBlacklist: "移出黑名单",
+    // IP Signer
+    ipSignerManagement: "IP 签名者管理",
+    currentSigner: "当前签名者",
+    notSet: "未设置",
+    signatureDisabled: "签名验证已禁用",
+    newSignerAddress: "新签名者地址 (0x...)",
+    setSigner: "设置签名者",
   },
 };
 

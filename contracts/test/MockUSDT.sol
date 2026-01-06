@@ -1,15 +1,14 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.33;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 /**
  * @title MockUSDT
  * @dev A mock USDT token with 6 decimals.
  */
-contract MockUSDT is ERC20, Ownable {
-    constructor() ERC20("Mock USDT", "mUSDT") Ownable(msg.sender) {}
+contract MockUSDT is ERC20 {
+    constructor() ERC20("Mock USDT", "mUSDT") {}
 
     function decimals() public pure override returns (uint8) {
         return 6;
@@ -20,7 +19,7 @@ contract MockUSDT is ERC20, Ownable {
      * @param to The address that will receive the minted tokens.
      * @param amount The amount of tokens to mint.
      */
-    function mint(address to, uint256 amount) public onlyOwner {
+    function mint(address to, uint256 amount) public {
         _mint(to, amount);
     }
 }

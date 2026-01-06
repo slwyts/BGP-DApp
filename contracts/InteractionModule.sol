@@ -1,24 +1,23 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.30;
+pragma solidity ^0.8.33;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "./BGPToken.sol";
-import "./RewardHistoryModule.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {BGPToken} from "./BGPToken.sol";
+import {RewardHistoryModule} from "./RewardHistoryModule.sol";
 
 /**
  * @title InteractionModule
  * @dev 每日交互模块
- * - 每天2次交互机会（00:00 和 12:00 UTC）
+ * - 每天2次交互机会(00:00 和 12:00 UTC)
  * - 每次交互需支付 0.6U ETH
  * - 每次交互奖励 2000 BGP
  */
-abstract contract InteractionModule is Ownable, RewardHistoryModule {
+abstract contract InteractionModule is RewardHistoryModule {
     // 需要主合约提供这些函数
     function _getBGPToken() internal view virtual returns (BGPToken);
     function _getTreasury() internal view virtual returns (address payable);
     
     // 交互配置
-    uint256 public constant INTERACTION_COST = 0.00018 ether; // 0.63 USDT (ETH @ $3500)
     uint256 public constant DAILY_BGP_REWARD = 2000 * 10**18; // 每次2000 BGP
     uint256 public constant SLOT_DURATION = 12 hours;
     uint256 public constant TIMEZONE_OFFSET = 8 hours; // UTC+8 时区偏移

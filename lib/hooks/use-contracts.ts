@@ -157,7 +157,12 @@ export function useRegister() {
     hash,
   })
 
-  const register = (referrer: string, ipAddr: string) => {
+  const register = (
+    referrer: string,
+    ipAddr: string,
+    timestamp: number,
+    signature: string
+  ) => {
     if (!addresses || !minFee) return
 
     // 生成随机费用：0.6-0.8 USD (minFee * 1 到 minFee * 1.333)
@@ -169,7 +174,7 @@ export function useRegister() {
       address: addresses.dapp as `0x${string}`,
       abi: DAppABI,
       functionName: 'register',
-      args: [referrer, ipAddr],
+      args: [referrer, ipAddr, BigInt(timestamp), signature],
       value: randomFee, // 随机费用 0.6-0.8 USD
     })
   }
@@ -1060,6 +1065,59 @@ export function useContractConstants() {
     earlyBirdLimit: earlyBirdLimit ? Number(earlyBirdLimit) : undefined,
     earlyBirdReward: earlyBirdReward as bigint | undefined,
     dailyBGPReward: dailyBGPReward as bigint | undefined,
+  }
+}
+
+/**
+ * 获取 IP 签名者地址
+ */
+export function useIPSigner() {
+  const { antiSybilAddress } = useAntiSybilAddress()
+
+  const { data, isLoading, refetch } = useReadContract({
+    address: antiSybilAddress as `0x${string}`,
+    abi: AntiSybilABI,
+    functionName: 'ipSigner',
+    query: {
+      enabled: !!antiSybilAddress,
+    },
+  })
+
+  return {
+    ipSigner: data as string | undefined,
+    isLoading,
+    refetch,
+  }
+}
+
+/**
+ * 设置 IP 签名者地址 (仅Owner)
+ */
+export function useSetIPSigner() {
+  const { antiSybilAddress } = useAntiSybilAddress()
+  const { writeContract, data: hash, isPending, error } = useWriteContract()
+
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+    hash,
+  })
+
+  const setIPSigner = (signerAddress: string) => {
+    if (!antiSybilAddress) return
+    writeContract({
+      address: antiSybilAddress as `0x${string}`,
+      abi: AntiSybilABI,
+      functionName: 'setIPSigner',
+      args: [signerAddress],
+    })
+  }
+
+  return {
+    setIPSigner,
+    hash,
+    isPending,
+    isConfirming,
+    isSuccess,
+    error,
   }
 }
 

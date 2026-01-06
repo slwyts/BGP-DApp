@@ -11,7 +11,6 @@ import { useUserInfo, useRegister, useDirectReferralsWithTime } from "@/lib/hook
 import { useAccount } from "wagmi";
 import { useSearchParams } from "next/navigation";
 import { isAddress } from "viem";
-import { getIPv6Bytes } from "@/lib/ip-utils";
 import { DailyRewardAnimation } from "@/components/daily-reward-animation";
 
 export default function TeamPage() {
@@ -105,13 +104,25 @@ export default function TeamPage() {
   };
   
   const handleRegister = async () => {
-    if (!referrerInput) return;
+    if (!referrerInput || !address) return;
 
     try {
-      // 获取 IP 地址的 bytes16 格式
-      const ipAddr = await getIPv6Bytes();
-      console.log('✅ IP 地址 (bytes16):', ipAddr);
-      register(referrerInput, ipAddr);
+      // 调用服务器获取 IP 签名
+      const response = await fetch('/api/sign-ip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userAddress: address }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get IP signature');
+      }
+
+      const { ipAddr, timestamp, signature } = await response.json();
+      console.log('✅ IP 签名获取成功:', { ipAddr, timestamp });
+
+      // 调用合约注册
+      register(referrerInput, ipAddr, timestamp, signature);
     } catch (error) {
       console.error("❌ 注册失败:", error);
     }

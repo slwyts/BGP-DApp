@@ -14,7 +14,7 @@ dotenvConfig({ path: resolve(__dirname, ".env.hardhat") });
 export default defineConfig({
   plugins: [hardhatToolbox],
   solidity: {
-    version: "0.8.30",
+    version: "0.8.33",
     settings: {
       optimizer: {
         enabled: true,
