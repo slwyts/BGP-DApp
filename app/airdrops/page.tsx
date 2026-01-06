@@ -14,9 +14,11 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useInteractionStatus, useInteract, useUserInfo, useGlobalStats } from "@/lib/hooks/use-contracts";
 import { getContractAddresses } from "@/lib/contracts/addresses";
 import { useWalletClient } from "wagmi";
+import { useRouter } from "next/navigation";
 
 export default function HomePage() {
   const { t } = useLocale();
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [claimOverlay, setClaimOverlay] = useState<{
     open: boolean;
@@ -261,8 +263,14 @@ export default function HomePage() {
             >
               <div className="absolute inset-0 bg-linear-to-r from-primary/30 via-orange-500/30 to-orange-600/30 rounded-3xl blur-2xl animate-pulse pointer-events-none" />
               <Button
-                onClick={onInteract}
-                disabled={status !== "ready"}
+                onClick={() => {
+                  if (status === "noReferrer") {
+                    router.push("/team");
+                  } else {
+                    onInteract();
+                  }
+                }}
+                disabled={status !== "ready" && status !== "noReferrer"}
                 className="relative w-full h-20 text-xl font-bold rounded-2xl bg-linear-to-r from-primary via-orange-500 to-orange-600 text-white shadow-2xl hover:shadow-primary/50 transition-all duration-300 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden group"
               >
                 <motion.div
