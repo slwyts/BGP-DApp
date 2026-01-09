@@ -133,8 +133,8 @@ contract BelaChainDApp is
         // 0. 检查用户是否已绑定推荐人（所有人都必须绑定）
         require(referrer[msg.sender] != address(0), "Must register with a referrer first");
 
-        // 1. 收取手续费
-        _collectFee(minFee);
+        // 1. 收取手续费（用户付多少转多少）
+        _collectFee(msg.value);
 
         // 2. 执行交互（发放 BGP 奖励）
         InteractionModule._interact(msg.sender);
@@ -166,8 +166,8 @@ contract BelaChainDApp is
         uint256 minFee = getMinFee();
         require(msg.value >= minFee, "Insufficient payment");
 
-        // 收取手续费
-        _collectFee(minFee);
+        // 收取手续费（用户付多少转多少）
+        _collectFee(msg.value);
 
         // 记录注册前的状态，用于判断是否获得早鸟奖励
         uint256 registrationNumber = totalRegistered + 1;
