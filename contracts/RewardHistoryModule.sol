@@ -1,10 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.33;
 
-/**
- * @title RewardHistoryModule
- * @dev 通用奖励记录模块，在链上记录所有奖励发放信息（类型、币种、数额、时间）。
- */
 abstract contract RewardHistoryModule {
     enum RewardToken {
         USDT,
@@ -37,9 +33,6 @@ abstract contract RewardHistoryModule {
         uint256 timestamp
     );
 
-    /**
-     * @dev 记录奖励信息
-     */
     function _recordReward(
         address user,
         RewardCategory category,
@@ -57,9 +50,6 @@ abstract contract RewardHistoryModule {
         emit RewardRecorded(user, category, token, amount, block.timestamp);
     }
 
-    /**
-     * @dev 获取指定用户的奖励记录（按时间正序）
-     */
     function getRewardHistory(
         address user,
         uint256 offset,
@@ -85,9 +75,6 @@ abstract contract RewardHistoryModule {
         }
     }
 
-    /**
-     * @dev 获取指定用户最新的奖励记录（按时间倒序返回）
-     */
     function getLatestRewardHistory(
         address user,
         uint256 count
@@ -107,9 +94,6 @@ abstract contract RewardHistoryModule {
         }
     }
 
-    /**
-     * @dev 获取奖励记录长度
-     */
     function rewardHistoryLength(address user) external view returns (uint256) {
         return _rewardHistory[user].length;
     }
