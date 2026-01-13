@@ -1,5 +1,5 @@
 import { http, createConfig } from 'wagmi'
-import { arbitrum, arbitrumSepolia } from 'wagmi/chains'
+import { base, baseSepolia } from 'wagmi/chains'
 import { defineChain } from 'viem'
 import { injected } from 'wagmi/connectors'
 
@@ -20,10 +20,10 @@ const localhost = defineChain({
 })
 
 // 根据环境变量选择网络
-const networkMode = process.env.NEXT_PUBLIC_NETWORK || 'arbitrum'
+const networkMode = process.env.NEXT_PUBLIC_NETWORK || 'base'
 
 // 根据网络模式配置链和传输
-let chains: readonly [typeof localhost] | readonly [typeof arbitrumSepolia] | readonly [typeof arbitrum]
+let chains: readonly [typeof localhost] | readonly [typeof baseSepolia] | readonly [typeof base]
 let transports: Record<number, ReturnType<typeof http>>
 
 if (networkMode === 'localnet') {
@@ -31,15 +31,15 @@ if (networkMode === 'localnet') {
   transports = {
     [localhost.id]: http(),
   }
-} else if (networkMode === 'arbitrum-sepolia') {
-  chains = [arbitrumSepolia] as const
+} else if (networkMode === 'base-sepolia') {
+  chains = [baseSepolia] as const
   transports = {
-    [arbitrumSepolia.id]: http(),
+    [baseSepolia.id]: http(),
   }
 } else {
-  chains = [arbitrum] as const
+  chains = [base] as const
   transports = {
-    [arbitrum.id]: http(),
+    [base.id]: http(),
   }
 }
 

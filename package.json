@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "dotenv -e .env.local -e .env.secret -- next dev",
     "dev:testnet": "dotenv -e .env.development -e .env.secret -- next dev",
+    "dev:prod": "dotenv -e .env.production -e .env.secret -- next dev",
     "generate:signer": "node -e \"const pk = '0x' + require('crypto').randomBytes(32).toString('hex'); const { privateKeyToAccount } = require('viem/accounts'); console.log('Private Key:', pk); console.log('Address:', privateKeyToAccount(pk).address); require('fs').writeFileSync('.env.secret', 'IP_SIGNER_PRIVATE_KEY=' + pk + '\\n')\"",
     "build:dev": "npm run compile && dotenv -e .env.development -e .env.secret -- next build",
     "build": "npm run compile && dotenv -e .env.production -e .env.secret -- next build",
