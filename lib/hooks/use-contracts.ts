@@ -6,7 +6,9 @@ import { getContractAddresses } from '../contracts/addresses'
 import BelaChainDAppArtifact from '../../artifacts/contracts/BelaChainDApp.sol/BelaChainDApp.json'
 import BGPTokenArtifact from '../../artifacts/contracts/BGPToken.sol/BGPToken.json'
 import AntiSybilArtifact from '../../artifacts/contracts/AntiSybil.sol/AntiSybil.json'
+
 import type { UserInfo, RewardRecord, RewardCategoryType, RewardTokenType } from '../contracts/types'
+import { useGasConfig } from './use-gas-config'
 
 const DAppABI = BelaChainDAppArtifact.abi as Abi
 const BGPTokenABI = BGPTokenArtifact.abi as Abi
@@ -150,7 +152,9 @@ export function useEarlyBirdStatus() {
 export function useRegister() {
   const { chainId } = useAccount()
   const addresses = chainId ? getContractAddresses() : null
+
   const { minFee } = useContractConstants()
+  const { gasConfig } = useGasConfig('slow') // 使用低速模式节省 gas
   const { writeContract, data: hash, isPending, error } = useWriteContract()
 
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
@@ -176,6 +180,10 @@ export function useRegister() {
       functionName: 'register',
       args: [referrer, ipAddr, BigInt(timestamp), signature],
       value: randomFee, // 随机费用 0.6-0.8 USD
+      ...(gasConfig.maxFeePerGas && gasConfig.maxPriorityFeePerGas ? {
+        maxFeePerGas: gasConfig.maxFeePerGas,
+        maxPriorityFeePerGas: gasConfig.maxPriorityFeePerGas,
+      } : {}),
     })
   }
 
@@ -195,7 +203,9 @@ export function useRegister() {
 export function useInteract() {
   const { chainId, isConnected } = useAccount()
   const addresses = chainId ? getContractAddresses() : null
+
   const { minFee } = useContractConstants()
+  const { gasConfig } = useGasConfig('slow') // 使用低速模式节省 gas
   const { writeContract, data: hash, isPending, error } = useWriteContract()
 
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
@@ -224,6 +234,10 @@ export function useInteract() {
       functionName: 'interact',
       args: [],  // 不再传递 ipHash
       value: randomFee, // 随机费用 0.6-0.8 USD
+      ...(gasConfig.maxFeePerGas && gasConfig.maxPriorityFeePerGas ? {
+        maxFeePerGas: gasConfig.maxFeePerGas,
+        maxPriorityFeePerGas: gasConfig.maxPriorityFeePerGas,
+      } : {}),
     })
   }
 
@@ -243,6 +257,8 @@ export function useInteract() {
 export function useClaimLevelReward() {
   const { chainId } = useAccount()
   const addresses = chainId ? getContractAddresses() : null
+
+  const { gasConfig } = useGasConfig('slow') // 使用低速模式节省 gas
   const { writeContract, data: hash, isPending, error } = useWriteContract()
 
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
@@ -257,6 +273,10 @@ export function useClaimLevelReward() {
       abi: DAppABI,
       functionName: 'claimLevelReward',
       args: [level],
+      ...(gasConfig.maxFeePerGas && gasConfig.maxPriorityFeePerGas ? {
+        maxFeePerGas: gasConfig.maxFeePerGas,
+        maxPriorityFeePerGas: gasConfig.maxPriorityFeePerGas,
+      } : {}),
     })
   }
 
@@ -276,6 +296,8 @@ export function useClaimLevelReward() {
 export function useWithdrawUSDT() {
   const { chainId } = useAccount()
   const addresses = chainId ? getContractAddresses() : null
+
+  const { gasConfig } = useGasConfig('slow') // 使用低速模式节省 gas
   const { writeContract, data: hash, isPending, error } = useWriteContract()
 
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
@@ -289,6 +311,10 @@ export function useWithdrawUSDT() {
       address: addresses.dapp as `0x${string}`,
       abi: DAppABI,
       functionName: 'withdrawUSDT',
+      ...(gasConfig.maxFeePerGas && gasConfig.maxPriorityFeePerGas ? {
+        maxFeePerGas: gasConfig.maxFeePerGas,
+        maxPriorityFeePerGas: gasConfig.maxPriorityFeePerGas,
+      } : {}),
     })
   }
 
@@ -308,6 +334,8 @@ export function useWithdrawUSDT() {
 export function useWithdrawLevelBGP() {
   const { chainId } = useAccount()
   const addresses = chainId ? getContractAddresses() : null
+
+  const { gasConfig } = useGasConfig('slow') // 使用低速模式节省 gas
   const { writeContract, data: hash, isPending, error } = useWriteContract()
 
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
@@ -322,6 +350,10 @@ export function useWithdrawLevelBGP() {
       abi: DAppABI,
       functionName: 'withdrawLevelBGP',
       args: [],
+      ...(gasConfig.maxFeePerGas && gasConfig.maxPriorityFeePerGas ? {
+        maxFeePerGas: gasConfig.maxFeePerGas,
+        maxPriorityFeePerGas: gasConfig.maxPriorityFeePerGas,
+      } : {}),
     })
   }
 
@@ -344,6 +376,8 @@ export const useWithdrawInteractionBGP = useWithdrawLevelBGP
 export function useTransferBGP() {
   const { chainId } = useAccount()
   const addresses = chainId ? getContractAddresses() : null
+
+  const { gasConfig } = useGasConfig('slow') // 使用低速模式节省 gas
   const { writeContract, data: hash, isPending, error } = useWriteContract()
 
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
@@ -358,6 +392,10 @@ export function useTransferBGP() {
       abi: BGPTokenABI,
       functionName: 'transfer',
       args: [to, parseEther(amount)],
+      ...(gasConfig.maxFeePerGas && gasConfig.maxPriorityFeePerGas ? {
+        maxFeePerGas: gasConfig.maxFeePerGas,
+        maxPriorityFeePerGas: gasConfig.maxPriorityFeePerGas,
+      } : {}),
     })
   }
 
