@@ -13,14 +13,34 @@ dotenvConfig({ path: resolve(__dirname, ".env.hardhat") });
 
 export default defineConfig({
   plugins: [hardhatToolbox],
-  solidity: {
-    version: "0.8.33",
-    settings: {
-      optimizer: {
-        enabled: true,
-        runs: 100000,
+    solidity: {
+    profiles: {
+      default: {
+        version: "0.8.33",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 1000000,
+          },
+          viaIR: true,
+          metadata: {
+            bytecodeHash: "none",
+          },
+        },
       },
-      viaIR: true,
+      production: {
+        version: "0.8.33",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 1000000,
+          },
+          viaIR: true,
+          metadata: {
+            bytecodeHash: "none",
+          },
+        },
+      },
     },
   },
   networks: {
@@ -38,17 +58,17 @@ export default defineConfig({
       url: "http://127.0.0.1:8545",
       chainId: 31337,
     },
-    arbitrumSepolia: {
+    baseSepolia: {
       type: "http" as const,
-      url: process.env.ARBITRUM_SEPOLIA_RPC || "https://sepolia-rollup.arbitrum.io/rpc",
-      chainId: 421614,
+      url: process.env.BASE_SEPOLIA_RPC || "https://sepolia.base.org",
+      chainId: 84532,
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       gasPrice: 100000000, // 0.1 gwei
     },
-    arbitrumOne: {
+    base: {
       type: "http" as const,
-      url: process.env.ARBITRUM_RPC || "https://arbitrum-one-rpc.publicnode.com",
-      chainId: 42161,
+      url: process.env.BASE_RPC || "https://mainnet.base.org",
+      chainId: 8453,
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
     },
   },

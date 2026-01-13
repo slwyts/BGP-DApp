@@ -23,8 +23,8 @@ interface EnvConfig {
   envFileName: string;
 }
 
-// Arbitrum 主网 USDT 地址
-const ARBITRUM_USDT_ADDRESS = "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9";
+// Base 主网 USDT 地址
+const BASE_USDT_ADDRESS = "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2";
 
 const ENV_CONFIGS: Record<Environment, EnvConfig> = {
   local: {
@@ -38,9 +38,9 @@ const ENV_CONFIGS: Record<Environment, EnvConfig> = {
     envFileName: ".env.local",
   },
   development: {
-    network: "arbitrum-sepolia",
-    chainId: 421614,
-    rpcUrl: "https://sepolia-rollup.arbitrum.io/rpc",
+    network: "base-sepolia",
+    chainId: 84532,
+    rpcUrl: "https://sepolia.base.org",
     shouldMintTestTokens: true,  // 铸造测试 USDT
     shouldDistributeGas: false,   // 不分发 Gas（需要自己有测试 ETH）
     shouldDistributeTokens: true, // 分发测试代币
@@ -48,14 +48,14 @@ const ENV_CONFIGS: Record<Environment, EnvConfig> = {
     envFileName: ".env.development",
   },
   production: {
-    network: "arbitrum",
-    chainId: 42161,
-    rpcUrl: "https://arbitrum-one-rpc.publicnode.com",
+    network: "base",
+    chainId: 8453,
+    rpcUrl: "https://mainnet.base.org",
     shouldMintTestTokens: false, // 不铸造测试币
     shouldDistributeGas: false,   // 不分发 Gas
     shouldDistributeTokens: false, // 不分发代币
     shouldDeployMockUSDT: false, // 不部署 MockUSDT
-    usdtAddress: ARBITRUM_USDT_ADDRESS, // 使用真实 USDT
+    usdtAddress: BASE_USDT_ADDRESS, // 使用 Base 主网 USDT
     envFileName: ".env.production",
   },
 };
@@ -76,9 +76,9 @@ async function main() {
   let env: Environment = "local";
   if (chainIdNum === 1337 || chainIdNum === 31337) {
     env = "local";
-  } else if (chainIdNum === 421614) {
+  } else if (chainIdNum === 84532) {
     env = "development";
-  } else if (chainIdNum === 42161) {
+  } else if (chainIdNum === 8453) {
     env = "production";
   }
   
@@ -115,6 +115,11 @@ async function main() {
   console.log("   IP 签名者地址:", ipSignerAddress);
   const antiSybil = await AntiSybil.deploy(ipSignerAddress);
   await antiSybil.waitForDeployment();
+  const antiSybilDeployTx = antiSybil.deploymentTransaction();
+  if (antiSybilDeployTx) {
+    console.log("   等待交易确认...");
+    await antiSybilDeployTx.wait(2); // 等待 2 个区块确认
+  }
   const antiSybilAddress = await antiSybil.getAddress();
   console.log("✅ AntiSybil 部署成功:", antiSybilAddress, "\n");
 
@@ -123,6 +128,11 @@ async function main() {
   const BGPToken = await ethers.getContractFactory("BGPToken");
   const bgpToken = await BGPToken.deploy(antiSybilAddress);
   await bgpToken.waitForDeployment();
+  const bgpTokenDeployTx = bgpToken.deploymentTransaction();
+  if (bgpTokenDeployTx) {
+    console.log("   等待交易确认...");
+    await bgpTokenDeployTx.wait(2); // 等待 2 个区块确认
+  }
   const bgpTokenAddress = await bgpToken.getAddress();
   console.log("✅ BGPToken 部署成功:", bgpTokenAddress, "\n");
 
@@ -137,6 +147,11 @@ async function main() {
     const MockUSDT = await ethers.getContractFactory("MockUSDT");
     const usdt = await MockUSDT.deploy();
     await usdt.waitForDeployment();
+    const usdtDeployTx = usdt.deploymentTransaction();
+    if (usdtDeployTx) {
+      console.log("   等待交易确认...");
+      await usdtDeployTx.wait(2); // 等待 2 个区块确认
+    }
     usdtAddress = await usdt.getAddress();
     usdtContract = usdt;
     console.log("✅ MockUSDT 部署成功:", usdtAddress, "\n");
@@ -163,13 +178,18 @@ async function main() {
     usdtAddress
   );
   await dapp.waitForDeployment();
+  const dappDeployTx = dapp.deploymentTransaction();
+  if (dappDeployTx) {
+    console.log("   等待交易确认...");
+    await dappDeployTx.wait(2); // 等待 2 个区块确认
+  }
   const dappAddress = await dapp.getAddress();
   console.log("✅ BelaChainDApp 部署成功:", dappAddress, "\n");
 
   // 5. 设置 AntiSybil 的 DApp 合约地址（必须在转移所有权之前）
   console.log("⚙️  设置 AntiSybil.setDappContract...");
   const tx1 = await antiSybil.setDappContract(dappAddress);
-  await tx1.wait();
+  await tx1.wait(2);
   console.log("✅ AntiSybil DApp 地址设置完成\n");
 
   // 6. 转移 BGP 代币
@@ -181,19 +201,19 @@ async function main() {
     
     console.log("💸 转移 50% BGP 到 DApp 合约...");
     const tx2a = await bgpToken.transfer(dappAddress, halfSupply);
-    await tx2a.wait();
+    await tx2a.wait(2);
     console.log("✅ 已转移", ethers.formatEther(halfSupply), "BGP 到 DApp\n");
-    
+
     console.log("💸 转移 50% BGP 到 Owner...");
     const tx2b = await bgpToken.transfer(ownerAddress, halfSupply);
-    await tx2b.wait();
+    await tx2b.wait(2);
     console.log("✅ 已转移", ethers.formatEther(halfSupply), "BGP 到 Owner\n");
   } else {
     // 测试环境：50% 给 DApp 合约，其余留给 deployer 用于测试
     console.log("💸 转移 50% BGP 到 DApp 合约...");
     const halfSupply = totalSupply / BigInt(2);
     const tx2 = await bgpToken.transfer(dappAddress, halfSupply);
-    await tx2.wait();
+    await tx2.wait(2);
     console.log("✅ 已转移", ethers.formatEther(halfSupply), "BGP 到 DApp\n");
   }
 
@@ -202,7 +222,7 @@ async function main() {
     console.log("💸 转移 USDT 到 DApp 合约...");
     const usdtAmount = ethers.parseUnits("3000000", 6); // 300万 USDT
     const tx3 = await usdtContract.transfer(dappAddress, usdtAmount);
-    await tx3.wait();
+    await tx3.wait(2);
     console.log("✅ 已转移", ethers.formatUnits(usdtAmount, 6), "USDT 到 DApp\n");
   }
 
@@ -247,13 +267,13 @@ async function main() {
 
   // 8. 转移所有权给 owner
   console.log("👑 转移合约所有权给:", ownerAddress);
-  
+
   const tx7 = await antiSybil.transferOwnership(ownerAddress);
-  await tx7.wait();
+  await tx7.wait(2);
   console.log("  ✅ AntiSybil 所有权转移完成");
 
   const tx8 = await dapp.transferOwnership(ownerAddress);
-  await tx8.wait();
+  await tx8.wait(2);
   console.log("  ✅ BelaChainDApp 所有权转移完成");
   console.log();
 

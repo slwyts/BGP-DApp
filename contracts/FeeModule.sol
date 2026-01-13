@@ -6,10 +6,10 @@ import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interf
 
 abstract contract FeeModule is Ownable {
     function _getTreasury() internal view virtual returns (address payable);
-    address public constant CHAINLINK_ETH_USD_MAINNET = 0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612;
+    address public constant CHAINLINK_ETH_USD_MAINNET = 0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70;
     uint256 public constant MIN_FEE_USD = 60;
     uint256 public constant USD_PRECISION = 100;
-    uint256 public simulatedEthPrice = 3500;
+    uint256 public simulatedEthPrice = 3000;
     bool public useChainlink;
     
     event FeeCollected(address indexed user, uint256 amount, uint256 ethPrice);
@@ -17,7 +17,7 @@ abstract contract FeeModule is Ownable {
     event ChainlinkToggled(bool enabled);
     
     constructor() {
-        useChainlink = block.chainid == 42161;
+        useChainlink = block.chainid == 8453;
     }
 
     function getEthPrice() public view returns (uint256 price) {
