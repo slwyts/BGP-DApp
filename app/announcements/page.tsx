@@ -13,7 +13,7 @@ const announcements = [
     id: "welcome-to-belachain",
     title: "欢迎来到 Belachain",
     titleEn: "Welcome to Belachain",
-    date: "2024-01-15",
+    date: "2026-01-15",
     excerpt: "Belachain 正式启动！了解我们的愿景和路线图。",
     excerptEn:
       "Belachain officially launches! Learn about our vision and roadmap.",
@@ -22,7 +22,7 @@ const announcements = [
     id: "airdrop-program-launch",
     title: "空投计划正式启动",
     titleEn: "Airdrop Program Launch",
-    date: "2024-01-20",
+    date: "2026-02-20",
     excerpt: "参与每日交互，赢取 BELA 代币和 USDT 奖励。",
     excerptEn:
       "Participate in daily interactions to earn BELA tokens and USDT rewards.",
@@ -31,7 +31,7 @@ const announcements = [
     id: "level-system-update",
     title: "等级系统更新",
     titleEn: "Level System Update",
-    date: "2024-01-25",
+    date: "2026-03-25",
     excerpt: "新的等级系统上线，更多奖励等你来拿！",
     excerptEn: "New level system is live with more rewards!",
   },

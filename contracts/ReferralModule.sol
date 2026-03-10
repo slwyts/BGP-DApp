@@ -29,7 +29,7 @@ abstract contract ReferralModule is Ownable, RewardHistoryModule {
     
     uint256 public totalRegistered;
     uint256 public constant EARLY_BIRD_LIMIT = 10000;
-    uint256 public constant EARLY_BIRD_REWARD = 5000 * 10**18;
+    uint256 public constant EARLY_BIRD_REWARD = 50000 * 10**18;
 
     event Registered(
         address indexed user,
@@ -47,11 +47,11 @@ abstract contract ReferralModule is Ownable, RewardHistoryModule {
     );
     
     constructor() {
-        levelRewards[1] = ReferralReward(800 * 10**18, 8);
-        levelRewards[2] = ReferralReward(400 * 10**18, 4);
-        levelRewards[3] = ReferralReward(200 * 10**18, 2);
+        levelRewards[1] = ReferralReward(8000 * 10**18, 8);
+        levelRewards[2] = ReferralReward(4000 * 10**18, 4);
+        levelRewards[3] = ReferralReward(2000 * 10**18, 2);
         for (uint8 i = 4; i <= 15; i++) {
-            levelRewards[i] = ReferralReward(100 * 10**18, 1);
+            levelRewards[i] = ReferralReward(1000 * 10**18, 1);
         }
     }
 

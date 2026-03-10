@@ -58,18 +58,19 @@ export default defineConfig({
       url: "http://127.0.0.1:8545",
       chainId: 31337,
     },
-    baseSepolia: {
+    bscTestnet: {
       type: "http" as const,
-      url: process.env.BASE_SEPOLIA_RPC || "https://sepolia.base.org",
-      chainId: 84532,
+      url: process.env.BSC_TESTNET_RPC || "https://data-seed-prebsc-1-s1.binance.org:8545",
+      chainId: 97,
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
-      gasPrice: 100000000, // 0.1 gwei
+      gasPrice: 10000000000, // 10 gwei
     },
-    base: {
+    bsc: {
       type: "http" as const,
-      url: process.env.BASE_RPC || "https://mainnet.base.org",
-      chainId: 8453,
+      url: process.env.BSC_RPC || "https://bsc-dataseed.binance.org",
+      chainId: 56,
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      gasPrice: 3000000000, // 3 gwei
     },
   },
   paths: {

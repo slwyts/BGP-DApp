@@ -42,18 +42,14 @@ export default function TeamPage() {
       setShowInput(false);
       
       // TODO: 从交易回执事件中读取 isEarlyBird 和 bgpReward
-      // 暂时假设前1万名用户都是早鸟，获得5000 BGP
+      // 暂时假设前1万名用户都是早鸟，获得50000 BGP
       // 实际应该解析 Registered 事件的 isEarlyBird 和 bgpReward 参数
-      const earlyBirdReward = 5000;
+      const earlyBirdReward = 50000;
       setRewardAmount(earlyBirdReward);
       setShowRewardAnim(true);
     }
   }, [isSuccess, refetchUserInfo]);
   
-  // 生成邀请码(使用地址后6位)
-  const [inviteCode] = useState(() => 
-    address ? address.slice(-6).toUpperCase() : "000000"
-  );
   
   // 客户端挂载状态
   const [mounted, setMounted] = useState(false);

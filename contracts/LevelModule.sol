@@ -41,18 +41,18 @@ abstract contract LevelModule is RewardHistoryModule {
     event LevelUpdated(address indexed user, uint8 oldLevel, uint8 newLevel);
     
     constructor() {
-        levels[0] = Level(10, 1 * 10**5, 200 * 10**18);                // V1: 10, 0.1 USDT, 200 BGP
-        levels[1] = Level(50, 5 * 10**5, 200 * 10**18);                // V2: 50, 0.5 USDT, 200 BGP
-        levels[2] = Level(100, 1 * 10**6, 200 * 10**18);               // V3: 100, 1 USDT, 200 BGP
-        levels[3] = Level(500, 5 * 10**6, 2000 * 10**18);              // V4: 500, 5 USDT, 2000 BGP
-        levels[4] = Level(3000, 20 * 10**6, 8000 * 10**18);            // V5: 3000, 20 USDT, 8000 BGP
-        levels[5] = Level(10000, 100 * 10**6, 10000 * 10**18);         // V6: 1W, 100 USDT, 1W BGP
-        levels[6] = Level(30000, 200 * 10**6, 30000 * 10**18);         // V7: 3W, 200 USDT, 3W BGP
-        levels[7] = Level(50000, 300 * 10**6, 50000 * 10**18);         // V8: 5W, 300 USDT, 5W BGP
-        levels[8] = Level(100000, 500 * 10**6, 100000 * 10**18);       // V9: 10W, 500 USDT, 10W BGP
-        levels[9] = Level(300000, 1000 * 10**6, 300000 * 10**18);      // V10: 30W, 1000 USDT, 30W BGP
-        levels[10] = Level(500000, 2000 * 10**6, 500000 * 10**18);     // V11: 50W, 2000 USDT, 50W BGP
-        levels[11] = Level(1000000, 10000 * 10**6, 1000000 * 10**18);  // V12: 100W, 1W USDT, 100W BGP
+        levels[0] = Level(10, 1 * 10**6, 2000 * 10**18);                 // V1: 10, 1 USDT, 2000 BGP
+        levels[1] = Level(50, 5 * 10**6, 2000 * 10**18);                 // V2: 50, 5 USDT, 2000 BGP
+        levels[2] = Level(100, 10 * 10**6, 2000 * 10**18);               // V3: 100, 10 USDT, 2000 BGP
+        levels[3] = Level(500, 50 * 10**6, 20000 * 10**18);              // V4: 500, 50 USDT, 20000 BGP
+        levels[4] = Level(3000, 200 * 10**6, 80000 * 10**18);            // V5: 3000, 200 USDT, 80000 BGP
+        levels[5] = Level(10000, 1000 * 10**6, 100000 * 10**18);         // V6: 1W, 1000 USDT, 10W BGP
+        levels[6] = Level(30000, 2000 * 10**6, 300000 * 10**18);         // V7: 3W, 2000 USDT, 30W BGP
+        levels[7] = Level(50000, 3000 * 10**6, 500000 * 10**18);         // V8: 5W, 3000 USDT, 50W BGP
+        levels[8] = Level(100000, 5000 * 10**6, 1000000 * 10**18);       // V9: 10W, 5000 USDT, 100W BGP
+        levels[9] = Level(300000, 10000 * 10**6, 3000000 * 10**18);      // V10: 30W, 10000 USDT, 300W BGP
+        levels[10] = Level(500000, 20000 * 10**6, 5000000 * 10**18);     // V11: 50W, 20000 USDT, 500W BGP
+        levels[11] = Level(1000000, 100000 * 10**6, 10000000 * 10**18);  // V12: 100W, 10W USDT, 1000W BGP
     }
 
     function _updateUserLevel(address user, uint256 userContribution) internal {

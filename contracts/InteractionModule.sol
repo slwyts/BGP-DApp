@@ -9,7 +9,7 @@ abstract contract InteractionModule is RewardHistoryModule {
     function _getBGPToken() internal view virtual returns (BGPToken);
     function _getTreasury() internal view virtual returns (address payable);
     
-    uint256 public constant DAILY_BGP_REWARD = 2000 * 10**18;
+    uint256 public constant DAILY_BGP_REWARD = 20000 * 10**18;
     uint256 public constant SLOT_DURATION = 12 hours;
     uint256 public constant TIMEZONE_OFFSET = 8 hours;
     

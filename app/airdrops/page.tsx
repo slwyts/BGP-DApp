@@ -28,7 +28,7 @@ export default function HomePage() {
   const [showDailyRewardAnim, setShowDailyRewardAnim] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [hydrated, setHydrated] = useState(false);
-  const [earnedReward, setEarnedReward] = useState(2000); // 保存本次获得的奖励
+  const [earnedReward, setEarnedReward] = useState(20000); // 保存本次获得的奖励
 
   // 使用真实合约数据
   const { canInteract, todayCount, refetch: refetchStatus } = useInteractionStatus();
@@ -42,7 +42,7 @@ export default function HomePage() {
 
   // 计算本次交互将获得的 BGP 奖励（仅空投奖励）
   const calculateReward = useCallback(() => {
-    return 2000; // 空投奖励固定为 2000 BGP
+    return 20000; // 空投奖励固定为 20000 BGP
   }, []);
 
   useEffect(() => {
@@ -79,8 +79,7 @@ export default function HomePage() {
     return () => clearTimeout(timer);
   }, []);
 
-  // 计算倒计时（使用区块链时间）
-  // 交互成功后的处理
+
   useEffect(() => {
     if (isSuccess) {
       setShowDailyRewardAnim(true);
@@ -94,7 +93,6 @@ export default function HomePage() {
         refetchUserInfo();    // 刷新用户信息
         refetchGlobalStats(); // 刷新全局统计
         
-        console.log('✅ 交互成功，数据已刷新');
       }, 1200);
     }
   }, [isSuccess, earnedReward, refetchStatus, refetchUserInfo, refetchGlobalStats]);
@@ -144,7 +142,7 @@ export default function HomePage() {
             address: addresses.bgpToken,
             symbol: 'BGP',
             decimals: 18,
-            image: 'https://raw.githubusercontent.com/slwyts/BGP-DApp/main/public/BelachainLogo.jpg',
+            image: `${window.location.origin}/BelachainLogo.jpg`,
           },
         },
       } as any);

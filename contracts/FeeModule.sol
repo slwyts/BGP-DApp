@@ -6,23 +6,23 @@ import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interf
 
 abstract contract FeeModule is Ownable {
     function _getTreasury() internal view virtual returns (address payable);
-    address public constant CHAINLINK_ETH_USD_MAINNET = 0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70;
-    uint256 public constant MIN_FEE_USD = 60;
+    address public constant CHAINLINK_BNB_USD_MAINNET = 0x0567F2323251f0Aab15c8dFb1967E4e8A7D42aeE;
+    uint256 public constant MIN_FEE_USD = 1000;
     uint256 public constant USD_PRECISION = 100;
-    uint256 public simulatedEthPrice = 3000;
+    uint256 public simulatedBnbPrice = 600;
     bool public useChainlink;
     
-    event FeeCollected(address indexed user, uint256 amount, uint256 ethPrice);
+    event FeeCollected(address indexed user, uint256 amount, uint256 bnbPrice);
     event SimulatedPriceUpdated(uint256 oldPrice, uint256 newPrice);
     event ChainlinkToggled(bool enabled);
     
     constructor() {
-        useChainlink = block.chainid == 8453;
+        useChainlink = block.chainid == 56;
     }
 
-    function getEthPrice() public view returns (uint256 price) {
+    function getBnbPrice() public view returns (uint256 price) {
         if (useChainlink) {
-            try AggregatorV3Interface(CHAINLINK_ETH_USD_MAINNET).latestRoundData() returns (
+            try AggregatorV3Interface(CHAINLINK_BNB_USD_MAINNET).latestRoundData() returns (
                 uint80,
                 int256 answer,
                 uint256,
@@ -32,16 +32,16 @@ abstract contract FeeModule is Ownable {
                 require(answer > 0, "Invalid price from Chainlink");
                 return uint256(answer);
             } catch {
-                return simulatedEthPrice * 10**8;
+                return simulatedBnbPrice * 10**8;
             }
         } else {
-            return simulatedEthPrice * 10**8;
+            return simulatedBnbPrice * 10**8;
         }
     }
 
     function getMinFee() public view returns (uint256 minFee) {
-        uint256 ethPrice = getEthPrice();
-        minFee = (MIN_FEE_USD * 10**18 * 10**8) / (USD_PRECISION * ethPrice);
+        uint256 bnbPrice = getBnbPrice();
+        minFee = (MIN_FEE_USD * 10**18 * 10**8) / (USD_PRECISION * bnbPrice);
         
         return minFee;
     }
@@ -49,19 +49,18 @@ abstract contract FeeModule is Ownable {
     function _collectFee(uint256 amount) internal {
         uint256 minFee = getMinFee();
         require(amount >= minFee, "Fee too low");
-        uint256 ethPrice = getEthPrice();
         (bool success, ) = _getTreasury().call{value: amount}("");
         require(success, "Fee transfer failed");
         
-        emit FeeCollected(msg.sender, amount, ethPrice);
+        emit FeeCollected(msg.sender, amount, getBnbPrice());
     }
     
     function setSimulatedPrice(uint256 _price) external onlyOwner {
-        require(!useChainlink, "Cannot set price on mainnet");
+        require(!useChainlink, "Cannot set price on BSC mainnet");
         require(_price > 0, "Invalid price");
         
-        uint256 oldPrice = simulatedEthPrice;
-        simulatedEthPrice = _price;
+        uint256 oldPrice = simulatedBnbPrice;
+        simulatedBnbPrice = _price;
         
         emit SimulatedPriceUpdated(oldPrice, _price);
     }

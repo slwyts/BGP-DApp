@@ -1,4 +1,3 @@
-import hre from "hardhat";
 import { network } from "hardhat";
 import * as fs from "fs";
 import * as path from "path";
@@ -23,8 +22,8 @@ interface EnvConfig {
   envFileName: string;
 }
 
-// Base 主网 USDT 地址
-const BASE_USDT_ADDRESS = "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2";
+// BSC 主网 USDT 地址
+const BSC_USDT_ADDRESS = "0x55d398326f99059fF775485246999027B3197955";
 
 const ENV_CONFIGS: Record<Environment, EnvConfig> = {
   local: {
@@ -38,24 +37,24 @@ const ENV_CONFIGS: Record<Environment, EnvConfig> = {
     envFileName: ".env.local",
   },
   development: {
-    network: "base-sepolia",
-    chainId: 84532,
-    rpcUrl: "https://sepolia.base.org",
+    network: "bsc-testnet",
+    chainId: 97,
+    rpcUrl: "https://data-seed-prebsc-1-s1.binance.org:8545",
     shouldMintTestTokens: true,  // 铸造测试 USDT
-    shouldDistributeGas: false,   // 不分发 Gas（需要自己有测试 ETH）
+    shouldDistributeGas: false,   // 不分发 Gas（需要自己有测试 BNB）
     shouldDistributeTokens: true, // 分发测试代币
     shouldDeployMockUSDT: true,
     envFileName: ".env.development",
   },
   production: {
-    network: "base",
-    chainId: 8453,
-    rpcUrl: "https://mainnet.base.org",
+    network: "bsc",
+    chainId: 56,
+    rpcUrl: "https://bsc-dataseed.binance.org",
     shouldMintTestTokens: false, // 不铸造测试币
     shouldDistributeGas: false,   // 不分发 Gas
     shouldDistributeTokens: false, // 不分发代币
     shouldDeployMockUSDT: false, // 不部署 MockUSDT
-    usdtAddress: BASE_USDT_ADDRESS, // 使用 Base 主网 USDT
+    usdtAddress: BSC_USDT_ADDRESS, // 使用 BSC 主网 USDT
     envFileName: ".env.production",
   },
 };
@@ -76,13 +75,15 @@ async function main() {
   let env: Environment = "local";
   if (chainIdNum === 1337 || chainIdNum === 31337) {
     env = "local";
-  } else if (chainIdNum === 84532) {
+  } else if (chainIdNum === 97) {
     env = "development";
-  } else if (chainIdNum === 8453) {
+  } else if (chainIdNum === 56) {
     env = "production";
   }
   
   const config = ENV_CONFIGS[env];
+  // 本地网络只需1个确认，测试/主网需要2个
+  const confirmations = env === "local" ? 1 : 2;
   
   console.log("🚀 开始部署合约...");
   console.log(`📍 环境: ${env.toUpperCase()}`);
@@ -105,7 +106,7 @@ async function main() {
   
   console.log("📝 部署账户:", deployer.address);
   console.log("👑 Owner 地址:", ownerAddress);
-  console.log("💰 账户余额:", ethers.formatEther(await ethers.provider.getBalance(deployer.address)), "ETH\n");
+  console.log("💰 账户余额:", ethers.formatEther(await ethers.provider.getBalance(deployer.address)), "BNB\n");
 
   // 1. 部署 AntiSybil
   console.log("📦 部署 AntiSybil...");
@@ -118,7 +119,7 @@ async function main() {
   const antiSybilDeployTx = antiSybil.deploymentTransaction();
   if (antiSybilDeployTx) {
     console.log("   等待交易确认...");
-    await antiSybilDeployTx.wait(2); // 等待 2 个区块确认
+    await antiSybilDeployTx.wait(confirmations); // 等待区块确认（本地1个，链上2个）
   }
   const antiSybilAddress = await antiSybil.getAddress();
   console.log("✅ AntiSybil 部署成功:", antiSybilAddress, "\n");
@@ -131,7 +132,7 @@ async function main() {
   const bgpTokenDeployTx = bgpToken.deploymentTransaction();
   if (bgpTokenDeployTx) {
     console.log("   等待交易确认...");
-    await bgpTokenDeployTx.wait(2); // 等待 2 个区块确认
+    await bgpTokenDeployTx.wait(confirmations); // 等待区块确认（本地1个，链上2个）
   }
   const bgpTokenAddress = await bgpToken.getAddress();
   console.log("✅ BGPToken 部署成功:", bgpTokenAddress, "\n");
@@ -150,7 +151,7 @@ async function main() {
     const usdtDeployTx = usdt.deploymentTransaction();
     if (usdtDeployTx) {
       console.log("   等待交易确认...");
-      await usdtDeployTx.wait(2); // 等待 2 个区块确认
+      await usdtDeployTx.wait(confirmations); // 等待区块确认（本地1个，链上2个）
     }
     usdtAddress = await usdt.getAddress();
     usdtContract = usdt;
@@ -181,7 +182,7 @@ async function main() {
   const dappDeployTx = dapp.deploymentTransaction();
   if (dappDeployTx) {
     console.log("   等待交易确认...");
-    await dappDeployTx.wait(2); // 等待 2 个区块确认
+    await dappDeployTx.wait(confirmations); // 等待区块确认（本地1个，链上2个）
   }
   const dappAddress = await dapp.getAddress();
   console.log("✅ BelaChainDApp 部署成功:", dappAddress, "\n");
@@ -189,7 +190,7 @@ async function main() {
   // 5. 设置 AntiSybil 的 DApp 合约地址（必须在转移所有权之前）
   console.log("⚙️  设置 AntiSybil.setDappContract...");
   const tx1 = await antiSybil.setDappContract(dappAddress);
-  await tx1.wait(2);
+  await tx1.wait(confirmations);
   console.log("✅ AntiSybil DApp 地址设置完成\n");
 
   // 6. 转移 BGP 代币
@@ -201,19 +202,19 @@ async function main() {
     
     console.log("💸 转移 50% BGP 到 DApp 合约...");
     const tx2a = await bgpToken.transfer(dappAddress, halfSupply);
-    await tx2a.wait(2);
+    await tx2a.wait(confirmations);
     console.log("✅ 已转移", ethers.formatEther(halfSupply), "BGP 到 DApp\n");
 
     console.log("💸 转移 50% BGP 到 Owner...");
     const tx2b = await bgpToken.transfer(ownerAddress, halfSupply);
-    await tx2b.wait(2);
+    await tx2b.wait(confirmations);
     console.log("✅ 已转移", ethers.formatEther(halfSupply), "BGP 到 Owner\n");
   } else {
     // 测试环境：50% 给 DApp 合约，其余留给 deployer 用于测试
     console.log("💸 转移 50% BGP 到 DApp 合约...");
     const halfSupply = totalSupply / BigInt(2);
     const tx2 = await bgpToken.transfer(dappAddress, halfSupply);
-    await tx2.wait(2);
+    await tx2.wait(confirmations);
     console.log("✅ 已转移", ethers.formatEther(halfSupply), "BGP 到 DApp\n");
   }
 
@@ -222,7 +223,7 @@ async function main() {
     console.log("💸 转移 USDT 到 DApp 合约...");
     const usdtAmount = ethers.parseUnits("3000000", 6); // 300万 USDT
     const tx3 = await usdtContract.transfer(dappAddress, usdtAmount);
-    await tx3.wait(2);
+    await tx3.wait(confirmations);
     console.log("✅ 已转移", ethers.formatUnits(usdtAmount, 6), "USDT 到 DApp\n");
   }
 
@@ -269,11 +270,11 @@ async function main() {
   console.log("👑 转移合约所有权给:", ownerAddress);
 
   const tx7 = await antiSybil.transferOwnership(ownerAddress);
-  await tx7.wait(2);
+  await tx7.wait(confirmations);
   console.log("  ✅ AntiSybil 所有权转移完成");
 
   const tx8 = await dapp.transferOwnership(ownerAddress);
-  await tx8.wait(2);
+  await tx8.wait(confirmations);
   console.log("  ✅ BelaChainDApp 所有权转移完成");
   console.log();
 

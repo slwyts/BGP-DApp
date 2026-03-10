@@ -8,7 +8,6 @@ import BGPTokenArtifact from '../../artifacts/contracts/BGPToken.sol/BGPToken.js
 import AntiSybilArtifact from '../../artifacts/contracts/AntiSybil.sol/AntiSybil.json'
 
 import type { UserInfo, RewardRecord, RewardCategoryType, RewardTokenType } from '../contracts/types'
-import { useGasConfig } from './use-gas-config'
 
 const DAppABI = BelaChainDAppArtifact.abi as Abi
 const BGPTokenABI = BGPTokenArtifact.abi as Abi
@@ -136,7 +135,7 @@ export function useEarlyBirdStatus() {
 
   const totalRegisteredNum = totalRegistered !== undefined ? Number(totalRegistered) : null;
   const earlyBirdLimitNum = earlyBirdLimit !== undefined ? Number(earlyBirdLimit) : 10000;
-  const earlyBirdRewardNum = earlyBirdReward !== undefined ? Number(formatEther(earlyBirdReward as bigint)) : 5000;
+  const earlyBirdRewardNum = earlyBirdReward !== undefined ? Number(formatEther(earlyBirdReward as bigint)) : 50000;
 
   return {
     totalRegistered: totalRegisteredNum ?? 0,
@@ -154,7 +153,6 @@ export function useRegister() {
   const addresses = chainId ? getContractAddresses() : null
 
   const { minFee } = useContractConstants()
-  const { gasConfig } = useGasConfig('slow') // 使用低速模式节省 gas
   const { writeContract, data: hash, isPending, error } = useWriteContract()
 
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
@@ -169,21 +167,14 @@ export function useRegister() {
   ) => {
     if (!addresses || !minFee) return
 
-    // 生成随机费用：0.6-0.8 USD (minFee * 1 到 minFee * 1.333)
-    // minFee 是 0.6 USD，随机乘以 1 到 1.333 倍得到 0.6-0.8 USD
-    const randomMultiplier = 1 + Math.random() * 0.333 // 1.0 to 1.333
-    const randomFee = BigInt(Math.floor(Number(minFee) * randomMultiplier))
+    const fee = minFee * 101n / 100n // 多付 1% 防止价格波动被拒
 
     writeContract({
       address: addresses.dapp as `0x${string}`,
       abi: DAppABI,
       functionName: 'register',
       args: [referrer, ipAddr, BigInt(timestamp), signature],
-      value: randomFee, // 随机费用 0.6-0.8 USD
-      ...(gasConfig.maxFeePerGas && gasConfig.maxPriorityFeePerGas ? {
-        maxFeePerGas: gasConfig.maxFeePerGas,
-        maxPriorityFeePerGas: gasConfig.maxPriorityFeePerGas,
-      } : {}),
+      value: fee, // 10U BNB + 1%
     })
   }
 
@@ -205,7 +196,6 @@ export function useInteract() {
   const addresses = chainId ? getContractAddresses() : null
 
   const { minFee } = useContractConstants()
-  const { gasConfig } = useGasConfig('slow') // 使用低速模式节省 gas
   const { writeContract, data: hash, isPending, error } = useWriteContract()
 
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
@@ -223,21 +213,15 @@ export function useInteract() {
       return
     }
 
-    // 生成随机费用：0.6-0.8 USD (minFee * 1 到 minFee * 1.333)
-    const randomMultiplier = 1 + Math.random() * 0.333 // 1.0 to 1.333
-    const randomFee = BigInt(Math.floor(Number(minFee) * randomMultiplier))
+    const fee = minFee * 101n / 100n // 多付 1% 防止价格波动被拒
 
-    console.log('✅ 发起交互:', { addresses, minFee, randomFee })
+    console.log('✅ 发起交互:', { addresses, minFee, fee })
     writeContract({
       address: addresses.dapp as `0x${string}`,
       abi: DAppABI,
       functionName: 'interact',
       args: [],  // 不再传递 ipHash
-      value: randomFee, // 随机费用 0.6-0.8 USD
-      ...(gasConfig.maxFeePerGas && gasConfig.maxPriorityFeePerGas ? {
-        maxFeePerGas: gasConfig.maxFeePerGas,
-        maxPriorityFeePerGas: gasConfig.maxPriorityFeePerGas,
-      } : {}),
+      value: fee, // 10U BNB + 1%
     })
   }
 
@@ -258,7 +242,6 @@ export function useClaimLevelReward() {
   const { chainId } = useAccount()
   const addresses = chainId ? getContractAddresses() : null
 
-  const { gasConfig } = useGasConfig('slow') // 使用低速模式节省 gas
   const { writeContract, data: hash, isPending, error } = useWriteContract()
 
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
@@ -273,10 +256,6 @@ export function useClaimLevelReward() {
       abi: DAppABI,
       functionName: 'claimLevelReward',
       args: [level],
-      ...(gasConfig.maxFeePerGas && gasConfig.maxPriorityFeePerGas ? {
-        maxFeePerGas: gasConfig.maxFeePerGas,
-        maxPriorityFeePerGas: gasConfig.maxPriorityFeePerGas,
-      } : {}),
     })
   }
 
@@ -297,7 +276,6 @@ export function useWithdrawUSDT() {
   const { chainId } = useAccount()
   const addresses = chainId ? getContractAddresses() : null
 
-  const { gasConfig } = useGasConfig('slow') // 使用低速模式节省 gas
   const { writeContract, data: hash, isPending, error } = useWriteContract()
 
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
@@ -311,10 +289,6 @@ export function useWithdrawUSDT() {
       address: addresses.dapp as `0x${string}`,
       abi: DAppABI,
       functionName: 'withdrawUSDT',
-      ...(gasConfig.maxFeePerGas && gasConfig.maxPriorityFeePerGas ? {
-        maxFeePerGas: gasConfig.maxFeePerGas,
-        maxPriorityFeePerGas: gasConfig.maxPriorityFeePerGas,
-      } : {}),
     })
   }
 
@@ -335,7 +309,6 @@ export function useWithdrawLevelBGP() {
   const { chainId } = useAccount()
   const addresses = chainId ? getContractAddresses() : null
 
-  const { gasConfig } = useGasConfig('slow') // 使用低速模式节省 gas
   const { writeContract, data: hash, isPending, error } = useWriteContract()
 
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
@@ -350,10 +323,6 @@ export function useWithdrawLevelBGP() {
       abi: DAppABI,
       functionName: 'withdrawLevelBGP',
       args: [],
-      ...(gasConfig.maxFeePerGas && gasConfig.maxPriorityFeePerGas ? {
-        maxFeePerGas: gasConfig.maxFeePerGas,
-        maxPriorityFeePerGas: gasConfig.maxPriorityFeePerGas,
-      } : {}),
     })
   }
 
@@ -377,7 +346,6 @@ export function useTransferBGP() {
   const { chainId } = useAccount()
   const addresses = chainId ? getContractAddresses() : null
 
-  const { gasConfig } = useGasConfig('slow') // 使用低速模式节省 gas
   const { writeContract, data: hash, isPending, error } = useWriteContract()
 
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
@@ -392,10 +360,6 @@ export function useTransferBGP() {
       abi: BGPTokenABI,
       functionName: 'transfer',
       args: [to, parseEther(amount)],
-      ...(gasConfig.maxFeePerGas && gasConfig.maxPriorityFeePerGas ? {
-        maxFeePerGas: gasConfig.maxFeePerGas,
-        maxPriorityFeePerGas: gasConfig.maxPriorityFeePerGas,
-      } : {}),
     })
   }
 
@@ -1046,11 +1010,11 @@ export function useContractConstants() {
     },
   })
 
-  // ETH 价格（从预言机读取）
-  const { data: ethPrice } = useReadContract({
+  // BNB 价格（从预言机读取）
+  const { data: bnbPrice } = useReadContract({
     address: addresses?.dapp as `0x${string}`,
     abi: DAppABI,
-    functionName: 'getEthPrice',
+    functionName: 'getBnbPrice',
     query: {
       enabled: !!addresses,
     },
@@ -1098,7 +1062,7 @@ export function useContractConstants() {
 
   return {
     minFee: minFee as bigint | undefined,
-    ethPrice: ethPrice as bigint | undefined,
+    bnbPrice: bnbPrice as bigint | undefined,
     minWithdrawUSDT: minWithdrawUSDT as bigint | undefined,
     earlyBirdLimit: earlyBirdLimit ? Number(earlyBirdLimit) : undefined,
     earlyBirdReward: earlyBirdReward as bigint | undefined,

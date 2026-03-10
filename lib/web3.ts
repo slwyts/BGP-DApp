@@ -1,5 +1,5 @@
 import { http, createConfig } from 'wagmi'
-import { base, baseSepolia } from 'wagmi/chains'
+import { bsc, bscTestnet } from 'wagmi/chains'
 import { defineChain } from 'viem'
 import { injected } from 'wagmi/connectors'
 
@@ -9,8 +9,8 @@ const localhost = defineChain({
   name: 'Localhost',
   nativeCurrency: {
     decimals: 18,
-    name: 'Ether',
-    symbol: 'ETH',
+    name: 'BNB',
+    symbol: 'BNB',
   },
   rpcUrls: {
     default: {
@@ -20,10 +20,10 @@ const localhost = defineChain({
 })
 
 // 根据环境变量选择网络
-const networkMode = process.env.NEXT_PUBLIC_NETWORK || 'base'
+const networkMode = process.env.NEXT_PUBLIC_NETWORK || 'bsc'
 
 // 根据网络模式配置链和传输
-let chains: readonly [typeof localhost] | readonly [typeof baseSepolia] | readonly [typeof base]
+let chains: readonly [typeof localhost] | readonly [typeof bscTestnet] | readonly [typeof bsc]
 let transports: Record<number, ReturnType<typeof http>>
 
 if (networkMode === 'localnet') {
@@ -31,15 +31,15 @@ if (networkMode === 'localnet') {
   transports = {
     [localhost.id]: http(),
   }
-} else if (networkMode === 'base-sepolia') {
-  chains = [baseSepolia] as const
+} else if (networkMode === 'bsc-testnet') {
+  chains = [bscTestnet] as const
   transports = {
-    [baseSepolia.id]: http(),
+    [bscTestnet.id]: http(),
   }
 } else {
-  chains = [base] as const
+  chains = [bsc] as const
   transports = {
-    [base.id]: http(),
+    [bsc.id]: http(),
   }
 }
 
