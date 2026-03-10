@@ -54,16 +54,16 @@ export function useUserInfo() {
     directReferralCount: (data as any[])[1],
     userTeamSize: (data as any[])[2],
     userContribution: (data as any[])[3],
-    userPendingLevelBGP: (data as any[])[4], // 待提现的等级奖励BGP
-    userTotalReferralBGPWithdrawn: (data as any[])[5], // 推荐奖励已发放BGP（直接到账）
+    userPendingLevelBGP: (data as any[])[4],
+    userTotalReferralBGPWithdrawn: (data as any[])[5],
     currentLevel: (data as any[])[6],
     userPendingUSDT: (data as any[])[7],
     userTotalUSDTWithdrawn: (data as any[])[8],
-    userTotalLevelBGP: (data as any[])[9], // 等级奖励已提现BGP
+    userTotalLevelBGP: (data as any[])[9],
     todayInteractionCount: (data as any[])[10],
     totalInteractionCount: (data as any[])[11],
-    userTotalInteractionBGP: (data as any[])[12], // 总交互BGP（直接发放）
-    hasClaimedEarlyBird: false, // 早鸟奖励包含在交互BGP中
+    userTotalInteractionBGP: (data as any[])[12],
+    hasClaimedEarlyBird: false,
   } : undefined
 
   return {
